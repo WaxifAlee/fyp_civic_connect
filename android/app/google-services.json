@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "286323631195",
+    "project_id": "fyp-civic-connect",
+    "storage_bucket": "fyp-civic-connect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:286323631195:android:74950fdf0e0c140a33cb7e",
+        "android_client_info": {
+          "package_name": "com.example.fyp_civic_connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAshgHJmUFljQVQboEQ7LxuZK7c6m1q7Z4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
