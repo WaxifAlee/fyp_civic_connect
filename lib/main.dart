@@ -1,3 +1,5 @@
+import 'package:fyp_civic_connect/screens/forgot_password.dart';
+
 import '../screens/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -19,7 +21,7 @@ class CivicConnectApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'CivicConnect',
-      initialRoute: '/home',
+      initialRoute: '/reset_password',
       theme: ThemeData(
         primaryColor: const Color(0XFF6C63FF),
       ),
@@ -27,6 +29,7 @@ class CivicConnectApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         '/home': (context) => WelcomeScreen(),
         '/signUp': (context) => SignupScreen(),
+        '/reset_password': (context) => ForgotScreen(),
       },
     );
   }
