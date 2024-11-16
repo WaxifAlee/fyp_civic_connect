@@ -98,7 +98,7 @@ The goal of CivicConnect is to:
 1. Clone this repository:
 
    ```bash
-   git clone https://github.com/yourusername/CivicConnect.git
+   git clone https://github.com/WaxifAlee/fyp_civic_connect.git
 
    ```
 
@@ -121,7 +121,7 @@ The goal of CivicConnect is to:
 ### For Community Users:
 
 1. Sign up or log in using email or Google.
-2. Report an issue by filling out the required details and attaching a photo.
+2. Report an issue by completing the required details and attaching a photo.
 3. Track the progress of your reported issues under the "My Issues" section.
 
 ### For Authorities:
