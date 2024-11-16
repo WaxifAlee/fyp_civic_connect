@@ -97,7 +97,7 @@ class _LoginScreenState extends State<ForgotScreen> {
                               child: TextFormField(
                             controller: _emailController,
                             decoration: const InputDecoration(
-                                labelText: ' Email ID',
+                                labelText: ' johnsmith@example.com',
                                 labelStyle: TextStyle(
                                   color: AppTheme.themePlaceHolderText,
                                   fontSize: 14,
