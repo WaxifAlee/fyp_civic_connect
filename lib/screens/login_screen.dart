@@ -29,9 +29,20 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       UserCredential credential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login Successful! 🎉'),
+        ),
+      );
       print("Userd signed in: ${credential.user?.phoneNumber}");
     } catch (e) {
       print("Sign-in Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Login was not successfull! Check your credentials and make sure you are connected to the internet ⚠️'),
+        ),
+      );
     }
   }
 

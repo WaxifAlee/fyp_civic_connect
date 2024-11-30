@@ -30,15 +30,15 @@ class _LoginFormState extends State<LoginForm> {
             // Email Field Row with Icon
             Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.alternate_email,
                   color: AppTheme.themePlaceHolderText,
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                     child: TextFormField(
                   controller: widget.emailController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                       labelText: ' Email ID',
                       labelStyle: TextStyle(
                         color: AppTheme.themePlaceHolderText,
@@ -59,20 +59,20 @@ class _LoginFormState extends State<LoginForm> {
               ],
             ),
 
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Password Field Row with Icon
             Row(
               children: [
-                Icon(Icons.lock, color: AppTheme.themePlaceHolderText),
-                SizedBox(width: 12),
+                const Icon(Icons.lock, color: AppTheme.themePlaceHolderText),
+                const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
                       controller: widget.passwordController,
                       obscureText: !isPasswordVisible,
                       decoration: InputDecoration(
                           labelText: " Password",
-                          labelStyle: TextStyle(
+                          labelStyle: const TextStyle(
                             color: AppTheme.themePlaceHolderText,
                             fontSize: 14,
                           ),
@@ -98,13 +98,15 @@ class _LoginFormState extends State<LoginForm> {
               ],
             ),
 
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                    onPressed: () {}, // Go to Forgot Screen
-                    child: Text(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/reset_password');
+                    }, // Go to Forgot Screen
+                    child: const Text(
                       "Forgot Password?",
                       textAlign: TextAlign.right,
                       style: TextStyle(
@@ -114,7 +116,7 @@ class _LoginFormState extends State<LoginForm> {
               ],
             ),
 
-            SizedBox(height: 34),
+            const SizedBox(height: 34),
 
             SizedBox(
               width: double.infinity,

@@ -2,7 +2,6 @@
 
 import '../themes/app_theme.dart';
 import 'package:flutter/material.dart';
-import '../widgets/back_button.dart';
 
 class SignupForm extends StatefulWidget {
   final TextEditingController emailController;
@@ -48,7 +47,7 @@ class _SignupFormState extends State<SignupForm> {
                 child: TextFormField(
               controller: widget.emailController,
               decoration: InputDecoration(
-                  labelText: ' Email ID',
+                  labelText: ' Email Address',
                   labelStyle: TextStyle(
                     color: AppTheme.themePlaceHolderText,
                     fontSize: 14,
@@ -179,7 +178,7 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return 'House/Apt, Street, City';
                     }
                     return null;
                   }),
@@ -197,7 +196,7 @@ class _SignupFormState extends State<SignupForm> {
               child: TextFormField(
                   controller: widget.phoneController,
                   decoration: InputDecoration(
-                    labelText: " Phone",
+                    labelText: " Phone Number",
                     labelStyle: TextStyle(
                       color: AppTheme.themePlaceHolderText,
                       fontSize: 14,
@@ -205,7 +204,7 @@ class _SignupFormState extends State<SignupForm> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
+                      return 'Please enter a valid phone number';
                     }
                     return null;
                   }),
@@ -226,9 +225,7 @@ class _SignupFormState extends State<SignupForm> {
               style: TextStyle(fontSize: 12),
             ),
             GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, "/signUp");
-              },
+              onTap: () {},
               child: Text(
                 "Terms & Conditions",
                 style: TextStyle(
@@ -240,9 +237,7 @@ class _SignupFormState extends State<SignupForm> {
             ),
             const Text(" and "),
             GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, "/signUp");
-              },
+              onTap: () {},
               child: Text(
                 "Privacy Policy",
                 style: TextStyle(
