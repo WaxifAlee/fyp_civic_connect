@@ -168,7 +168,7 @@ class DashboardPage extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: CustomNavBarCurved(), // Replace with the custom widget
+      bottomNavigationBar: CustomNavBarCurved(), 
     );
   }
 

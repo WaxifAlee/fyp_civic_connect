@@ -1,3 +1,5 @@
+import 'package:fyp_civic_connect/screens/notifications.dart';
+
 import 'package:fyp_civic_connect/screens/dashboard.dart';
 
 import 'package:fyp_civic_connect/screens/forgot_password.dart';
@@ -24,7 +26,7 @@ class CivicConnectApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'CivicConnect',
-      initialRoute: '/dashboard',
+      initialRoute: '/notifications',
       theme: ThemeData(
         primaryColor: const Color(0XFF6C63FF),
       ),
@@ -35,6 +37,7 @@ class CivicConnectApp extends StatelessWidget {
         '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
         '/dashboard': (context) => DashboardPage(),
+        '/notifications': (context) => NotificationScreen(),
       },
     );
   }
