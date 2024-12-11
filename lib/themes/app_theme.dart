@@ -11,6 +11,9 @@ class AppTheme {
   static const Color themeSecondaryGray = Color(0xFFE6E6E6);
   static const Color themePlaceHolderText = Color(0xFF838EA1);
   static const Color themePink = Color(0xFFE58D8A);
+  static const Color mintGreen = Color(0xFFA7D7C5);
+  static const Color softPurple = Color(0xFF817BE4);
+  static const Color honeyYellow = Color(0xFFE3D7B3);
   static const double titleFontSize = 28;
 
   static const borderPadding = 28.0;

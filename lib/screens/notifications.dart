@@ -20,11 +20,6 @@ class NotificationScreen extends StatelessWidget {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/Logo.png', // Replace with the actual path to the logo
-              height: 30,
-            ),
-            SizedBox(width: 8),
             Text(
               'CivicConnect',
               style: GoogleFonts.poppins(
@@ -114,7 +109,8 @@ class NotificationScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: CustomNavBarCurved(), // Your custom navigation bar widget
+      bottomNavigationBar:
+          CustomNavBarCurved(), // Your custom navigation bar widget
     );
   }
 

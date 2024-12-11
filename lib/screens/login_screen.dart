@@ -1,6 +1,8 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/screens/dashboard.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../themes/app_theme.dart';
 import '../widgets/back_button.dart';
 import '../widgets/login_form.dart';
@@ -34,6 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text('Login Successful! 🎉'),
         ),
       );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+            builder: (context) => DashboardPage(
+                  user: credential.user,
+                )),
+      );
       print("Userd signed in: ${credential.user?.phoneNumber}");
     } catch (e) {
       print("Sign-in Error: $e");
@@ -53,8 +62,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: AppTheme.themeWhite,
-          leading: CustomBackButton(backTo: "/home")),
+        backgroundColor: AppTheme.themeWhite,
+        leading: CustomBackButton(backTo: "/home"),
+        title: Text(
+          "Sign In to Your Account",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
+      ),
       backgroundColor: AppTheme.themeWhite,
       body: Padding(
         padding: EdgeInsets.only(
@@ -65,13 +79,6 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  "Sign In to Your Account",
-                  style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.themeGray),
-                ),
                 Padding(
                   padding: EdgeInsets.only(top: 12, bottom: 12),
                   child: Image(

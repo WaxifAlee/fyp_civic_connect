@@ -1,3 +1,5 @@
+import 'package:fyp_civic_connect/screens/loadingscreen.dart';
+import 'package:fyp_civic_connect/screens/login_screen.dart';
 import 'package:fyp_civic_connect/screens/notifications.dart';
 
 import 'package:fyp_civic_connect/screens/dashboard.dart';
@@ -8,7 +10,6 @@ import 'package:fyp_civic_connect/screens/report_issue_screen.dart';
 import '../screens/signup_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import '../screens/login_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -26,17 +27,13 @@ class CivicConnectApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'CivicConnect',
-      initialRoute: '/notifications',
-      theme: ThemeData(
-        primaryColor: const Color(0XFF6C63FF),
-      ),
+      home: LoadingScreen(),
       routes: {
         '/login': (context) => LoginScreen(),
         '/home': (context) => WelcomeScreen(),
         '/signUp': (context) => SignupScreen(),
         '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
-        '/dashboard': (context) => DashboardPage(),
         '/notifications': (context) => NotificationScreen(),
       },
     );
@@ -147,7 +144,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const LoginScreen()),
+                              builder: (context) => LoginScreen()),
                         );
                       },
                       child: const Text(
@@ -193,7 +190,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const LoginScreen()),
+                              builder: (context) => LoginScreen()),
                         );
                       },
                       style: ElevatedButton.styleFrom(
