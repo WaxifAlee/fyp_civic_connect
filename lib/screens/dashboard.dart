@@ -140,16 +140,16 @@ class _DashboardPageState extends State<DashboardPage> {
               SizedBox(height: 24),
               // Buttons
               Padding(
-                padding: EdgeInsets.only(left: 25, right: 25),
+                padding: EdgeInsets.only(left: 5, right: 5),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     ElevatedButton(
                       onPressed: () {},
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xffB2AFEF),
                         padding:
-                            EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(32),
                         ),
@@ -167,7 +167,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Color(0xffB2AFEF), width: 3.0),
                         padding:
-                            EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 24),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(32),
                         ),

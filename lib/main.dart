@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fyp_civic_connect/screens/loadingscreen.dart';
 import 'package:fyp_civic_connect/screens/login_screen.dart';
 import 'package:fyp_civic_connect/screens/notifications.dart';
@@ -5,6 +6,7 @@ import 'package:fyp_civic_connect/screens/notifications.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
 
 import 'package:fyp_civic_connect/screens/forgot_password.dart';
+import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/screens/report_issue_screen.dart';
 
 import '../screens/signup_screen.dart';
@@ -16,11 +18,13 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const CivicConnectApp());
+  runApp(CivicConnectApp());
 }
 
 class CivicConnectApp extends StatelessWidget {
-  const CivicConnectApp({super.key});
+  CivicConnectApp({super.key});
+
+  User? user = FirebaseAuth.instance.currentUser;
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +39,12 @@ class CivicConnectApp extends StatelessWidget {
         '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
         '/notifications': (context) => NotificationScreen(),
+        '/dashboard': (context) => DashboardPage(user: user),
+        '/profile': (context) => Profile(
+              user: user,
+            ),
       },
+      initialRoute: '/profile',
     );
   }
 }

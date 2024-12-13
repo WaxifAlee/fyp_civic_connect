@@ -18,26 +18,17 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   Future<void> _checkFirebaseLoginStatus() async {
     // Simulate a loading delay
-    await Future.delayed(Duration(seconds: 4));
+    await Future.delayed(Duration(seconds: 1));
 
     // Get the current Firebase user
     User? user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
       // User is signed in, navigate to Dashboard
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-            builder: (context) => DashboardPage(
-                  user: user,
-                )),
-      );
+      Navigator.pushNamed(context, '/dashboard');
     } else {
       // User is not signed in, navigate to Login
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-      );
+      Navigator.pushNamed(context, '/login');
     }
   }
 

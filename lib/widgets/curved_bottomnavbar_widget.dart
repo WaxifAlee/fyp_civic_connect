@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/screens/dashboard.dart';
+import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 
 class CustomNavBarCurved extends StatefulWidget {
@@ -13,6 +16,8 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
   // Track selected index
   int _selectedIndex = 0;
 
+  User? user = FirebaseAuth.instance.currentUser;
+
   // Update index when an item is tapped
   void _onNavBarItemTapped(int index) {
     setState(() {
@@ -22,10 +27,19 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
     // Navigate to different pages based on the tapped index
     switch (index) {
       case 0:
-        Navigator.pushNamed(context, "/dashboard");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardPage(user: user)),
+        );
         break;
       case 1:
-        Navigator.pushNamed(context, "/profile");
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => Profile(
+                    user: user,
+                  )),
+        );
 
         break;
     }
@@ -159,7 +173,7 @@ class NavBarIcon extends StatelessWidget {
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       icon: CircleAvatar(
-        backgroundColor: selected ? Colors.white : Colors.transparent,
+        backgroundColor: Colors.transparent,
         child: Icon(
           icon,
           size: 25,
