@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
+import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../themes/app_theme.dart';
 import '../widgets/back_button.dart';
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -28,9 +30,15 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin(String email, String password) async {
+    setState(() {
+      _isLoading = true;
+    });
     try {
       UserCredential credential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+          .signInWithEmailAndPassword(
+              email: email.trim(), password: password.trim());
+      String userId = credential.user!.uid;
+      await fetchAndSetCitizenUser(userId);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Login Successful! 🎉'),
@@ -40,18 +48,21 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(
             builder: (context) => DashboardPage(
-                  user: credential.user,
+                  user: globalCitizenUser,
                 )),
       );
-      print("Userd signed in: ${credential.user?.phoneNumber}");
     } catch (e) {
-      print("Sign-in Error: $e");
+      print("Error Mesasage: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
               'Login was not successfull! Check your credentials and make sure you are connected to the internet ⚠️'),
         ),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -88,10 +99,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 LoginForm(
-                    emailController: _emailController,
-                    passwordController: _passwordController,
-                    formKey: _formKey,
-                    onSubmit: _handleLogin),
+                  emailController: _emailController,
+                  passwordController: _passwordController,
+                  formKey: _formKey,
+                  onSubmit: _handleLogin,
+                  isLoading: _isLoading,
+                ),
 
                 SizedBox(height: 24),
 

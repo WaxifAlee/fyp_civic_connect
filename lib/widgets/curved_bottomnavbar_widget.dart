@@ -1,8 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/main.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
 import 'package:fyp_civic_connect/screens/profile.dart';
+import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 
 class CustomNavBarCurved extends StatefulWidget {
@@ -16,8 +18,6 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
   // Track selected index
   int _selectedIndex = 0;
 
-  User? user = FirebaseAuth.instance.currentUser;
-
   // Update index when an item is tapped
   void _onNavBarItemTapped(int index) {
     setState(() {
@@ -29,7 +29,8 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
       case 0:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage(user: user)),
+          MaterialPageRoute(
+              builder: (context) => DashboardPage(user: globalCitizenUser)),
         );
         break;
       case 1:
@@ -37,7 +38,7 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
           context,
           MaterialPageRoute(
               builder: (context) => Profile(
-                    user: user,
+                    user: globalCitizenUser,
                   )),
         );
 

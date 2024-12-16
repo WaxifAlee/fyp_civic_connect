@@ -6,13 +6,15 @@ class LoginForm extends StatefulWidget {
   final TextEditingController passwordController;
   final GlobalKey<FormState> formKey;
   final void Function(String email, String password) onSubmit;
+  bool isLoading;
 
-  const LoginForm(
+  LoginForm(
       {super.key,
       required this.emailController,
       required this.passwordController,
       required this.formKey,
-      required this.onSubmit});
+      required this.onSubmit,
+      required this.isLoading});
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -122,27 +124,37 @@ class _LoginFormState extends State<LoginForm> {
               width: double.infinity,
               height: 42,
               child: TextButton(
-                onPressed: () {
-                  if (widget.formKey.currentState!.validate()) {
-                    widget.onSubmit(
-                      widget.emailController.text.trim(),
-                      widget.passwordController.text.trim(),
-                    );
-                  }
-                },
+                onPressed: widget.isLoading
+                    ? null
+                    : () {
+                        if (widget.formKey.currentState!.validate()) {
+                          widget.onSubmit(
+                            widget.emailController.text.trim(),
+                            widget.passwordController.text.trim(),
+                          );
+                        }
+                      },
                 style: ButtonStyle(
                     backgroundColor:
                         const WidgetStatePropertyAll(AppTheme.themePurple),
                     shape: WidgetStatePropertyAll(RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ))),
-                child: const Text(
-                  "Sign In",
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18),
-                ),
+                child: widget.isLoading
+                    ? const Text(
+                        "Signing in...",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18),
+                      )
+                    : const Text(
+                        "Sign In",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18),
+                      ),
               ),
             ),
           ],

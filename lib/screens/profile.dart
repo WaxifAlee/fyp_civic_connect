@@ -1,9 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart';
 
 class Profile extends StatelessWidget {
-  final User? user;
+  final CitizenUser? user;
   const Profile({super.key, required this.user});
 
   @override
@@ -23,7 +24,7 @@ class Profile extends StatelessWidget {
         padding: EdgeInsets.all(12),
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // User profile image
               CircleAvatar(

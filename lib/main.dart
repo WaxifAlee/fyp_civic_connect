@@ -1,5 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fyp_civic_connect/screens/loadingscreen.dart';
+import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/screens/login_screen.dart';
 import 'package:fyp_civic_connect/screens/notifications.dart';
 
@@ -8,6 +9,8 @@ import 'package:fyp_civic_connect/screens/dashboard.dart';
 import 'package:fyp_civic_connect/screens/forgot_password.dart';
 import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/screens/report_issue_screen.dart';
+import 'package:fyp_civic_connect/screens/splash_scren.dart';
+import 'package:fyp_civic_connect/services/user_service.dart';
 
 import '../screens/signup_screen.dart';
 import 'package:flutter/material.dart';
@@ -24,14 +27,12 @@ void main() async {
 class CivicConnectApp extends StatelessWidget {
   CivicConnectApp({super.key});
 
-  User? user = FirebaseAuth.instance.currentUser;
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'CivicConnect',
-      home: LoadingScreen(),
+      home: SplashScreen(),
       routes: {
         '/login': (context) => LoginScreen(),
         '/home': (context) => WelcomeScreen(),
@@ -39,12 +40,11 @@ class CivicConnectApp extends StatelessWidget {
         '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
         '/notifications': (context) => NotificationScreen(),
-        '/dashboard': (context) => DashboardPage(user: user),
+        '/dashboard': (context) => DashboardPage(user: globalCitizenUser),
         '/profile': (context) => Profile(
-              user: user,
+              user: globalCitizenUser,
             ),
       },
-      initialRoute: '/profile',
     );
   }
 }
@@ -58,6 +58,11 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
   int _currentIndex = 0;
 
   @override

@@ -1,12 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart';
 
 class DashboardPage extends StatefulWidget {
-  final User? user;
+  final CitizenUser? user;
   const DashboardPage({super.key, required this.user});
 
   @override
@@ -14,37 +15,9 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  String? userName;
-
   @override
   void initState() {
     super.initState();
-    fetchUserName();
-  }
-
-  Future<void> fetchUserName() async {
-    try {
-      if (widget.user != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.user!.uid)
-            .get();
-
-        if (userDoc.exists) {
-          setState(() {
-            userName = userDoc.data()!['full_name'] ?? 'User';
-          });
-        } else {
-          setState(() {
-            userName = 'User';
-          });
-        }
-      }
-    } catch (e) {
-      setState(() {
-        userName = 'User';
-      });
-    }
   }
 
   String getGreeting() {
@@ -73,6 +46,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final String? username = widget.user!.fullName;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -112,7 +87,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: CircleAvatar(
                       radius: 84,
                       backgroundImage: NetworkImage(
-                          "https://avatar.iran.liara.run/username?username=$userName"),
+                          "https://avatar.iran.liara.run/username?username=$username"),
                     ),
                   ),
                   SizedBox(height: 16),
@@ -120,7 +95,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        userName ?? "Hmm You are...",
+                        username ?? "Hmm You are...",
                         style: GoogleFonts.poppins(
                           fontSize: 30,
                           fontWeight: FontWeight.w500,
