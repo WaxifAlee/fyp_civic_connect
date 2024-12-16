@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fyp_civic_connect/models/citizen_user.dart'; // Adjust the path as needed
-import 'package:fyp_civic_connect/models/custom_location.dart'; // Adjust the path as needed
+// Adjust the path as needed
 
 // Global variable to store the logged-in user's data
 CitizenUser? globalCitizenUser;
@@ -18,7 +18,7 @@ Future<void> fetchAndSetCitizenUser(String userId) async {
         uid: userData['uid'],
         fullName: userData['full_name'],
         email: userData['email'],
-        location: userData['location'],
+        location: userData['locations'],
         phone: userData['phone'],
       );
     } else {

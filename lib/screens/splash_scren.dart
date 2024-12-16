@@ -1,13 +1,16 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
-import './dashboard.dart'; // Your dashboard or next screen
+// Your dashboard or next screen
 import 'login_screen.dart'; // Optional, for unauthenticated users
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -58,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNextScreen() async {
     try {
       // Simulate a delay (e.g., for splash screen or initialization)
-      await Future.delayed(Duration(seconds: 3));
+      await Future.delayed(Duration(seconds: 1));
 
       // Check authentication status
       User? currentUser = FirebaseAuth.instance.currentUser;
@@ -72,7 +75,9 @@ class _SplashScreenState extends State<SplashScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => DashboardPage(user: globalCitizenUser),
+              builder: (context) => Profile(
+                user: globalCitizenUser,
+              ),
             ),
           );
         } catch (fetchError) {
@@ -118,7 +123,7 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: AppTheme.softPurple, // Adjust background color if needed
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           // Centered content
           Center(
@@ -160,7 +165,7 @@ class _SplashScreenState extends State<SplashScreen> {
               padding: const EdgeInsets.only(
                   right: 16.0,
                   left: 16,
-                  bottom: 40), // Add some margin from edges
+                  bottom: 0), // Add some margin from edges
               child: Column(
                 children: [
                   Text(

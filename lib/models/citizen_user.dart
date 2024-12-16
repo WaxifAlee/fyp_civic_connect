@@ -5,7 +5,7 @@ class CitizenUser {
   String? _uid;
   String? _fullName;
   String? _email;
-  Customlocation? _location;
+  String? _location;
   String? _phone;
 
   // Constructor
@@ -13,7 +13,7 @@ class CitizenUser {
     required String? uid,
     required String? fullName,
     required String? email,
-    required Customlocation? location,
+    required String? location,
     String? phone,
   }) {
     _uid = uid;
@@ -27,13 +27,13 @@ class CitizenUser {
   String? get uid => _uid;
   String? get fullName => _fullName;
   String? get email => _email;
-  Customlocation? get location => _location;
+  String? get location => _location;
   String? get phone => _phone;
 
   // Setters
   set uid(String? value) => _uid = value;
   set fullName(String? value) => _fullName = value;
   set email(String? value) => _email = value;
-  set location(Customlocation? value) => _location = value;
+  set location(String? value) => _location = value;
   set phone(String? value) => _phone = value;
 }
