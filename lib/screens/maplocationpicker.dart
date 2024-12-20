@@ -9,8 +9,7 @@ class MapLocationPicker extends StatefulWidget {
 
 class _MapLocationPickerState extends State<MapLocationPicker> {
   GoogleMapController? _mapController;
-  LatLng _initialPosition =
-      const LatLng(37.7749, -122.4194); // Default to San Francisco
+  LatLng _initialPosition = const LatLng(33.6844, 72.9784);
   LatLng? _pickedLocation;
 
   @override
@@ -47,6 +46,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
           desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _initialPosition = LatLng(position.latitude, position.longitude);
+        _mapController?.animateCamera(CameraUpdate.newLatLng(
+            _initialPosition)); // Move camera to current location
       });
     }
   }
@@ -60,9 +61,12 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   void _goToCurrentLocation() async {
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
+    LatLng currentLocation = LatLng(position.latitude, position.longitude);
     _mapController?.animateCamera(CameraUpdate.newLatLng(
-      LatLng(position.latitude, position.longitude),
-    ));
+        currentLocation)); // Move camera to current location
+    setState(() {
+      _pickedLocation = currentLocation;
+    });
   }
 
   @override

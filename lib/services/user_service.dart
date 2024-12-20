@@ -23,7 +23,14 @@ Future<void> fetchAndSetCitizenUser(String userId) async {
         displayPicture: userData['profile_picture'],
         cnic: userData['cnic'],
         gender: userData['gender'],
-        joinDate: userData['created_at'],
+        joinDate: (userData['created_at'] as Timestamp)
+            .toDate()
+            .toLocal()
+            .toString()
+            .split(' ')[0]
+            .split('-')
+            .reversed
+            .join('/'), // Convert DateTime to DD/MM/YYYY String
       );
     } else {
       throw Exception('User data does not exist.');

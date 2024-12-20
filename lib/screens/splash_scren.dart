@@ -83,6 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
           // Handle errors during user data fetching
           print('Error fetching user data: $fetchError');
           _showErrorDialog('Failed to load user data. Please try again.');
+          await FirebaseAuth.instance.signOut();
         }
       } else {
         // Navigate to LoginScreen if the user is not authenticated
