@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "D:/Productivity/fyp_civic_connect/windows"
+  "cmake.sourceDirectory": "D:/Productivity/fyp_civic_connect/windows",
+  "cmake.ignoreCMakeListsMissing": true
 }
