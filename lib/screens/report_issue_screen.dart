@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fyp_civic_connect/screens/maplocationpicker.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:fyp_civic_connect/widgets/bordered_dropdown.dart';
@@ -7,6 +10,8 @@ import 'package:fyp_civic_connect/widgets/image_picker_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:io';
+import 'package:uuid/uuid.dart';
 
 class ReportIssueScreen extends StatefulWidget {
   const ReportIssueScreen({super.key});
@@ -20,6 +25,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   final _formKey = GlobalKey<FormState>();
   String? selectedValue;
   TextEditingController locationController = TextEditingController();
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
+  bool isSubmitting = false;
 
   void _handleImagesSelected(List<XFile> images) {
     setState(() {
@@ -38,6 +46,74 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
         locationController.text =
             "${pickedLocation.latitude}, ${pickedLocation.longitude}";
       });
+    }
+  }
+
+  Future<void> _submitReport() async {
+    if (_formKey.currentState!.validate() && selectedValue != null) {
+      setState(() {
+        isSubmitting = true;
+      });
+
+      try {
+        // Initialize Supabase client
+        final supabase = Supabase.instance.client;
+
+        // Upload images to Supabase Storage
+        List<String> imageUrls = [];
+        for (XFile image in _images) {
+          String imageId = const Uuid().v4();
+          final file = File(image.path);
+
+          final response = await supabase.storage
+              .from('reports-images')
+              .uploadBinary('public/$imageId.jpg', file.readAsBytesSync());
+
+          if (response.isEmpty) {
+            throw Exception('Failed to upload image');
+          }
+
+          final publicUrl = supabase.storage
+              .from('reports-images')
+              .getPublicUrl('public/$imageId.jpg');
+          imageUrls.add(publicUrl);
+        }
+
+        // Save report data to Firestore
+        FirebaseFirestore.instance.collection('reports').add({
+          'title': titleController.text,
+          'description': descriptionController.text,
+          'category': selectedValue,
+          'location': locationController.text,
+          'images': imageUrls,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Report submitted successfully!')),
+        );
+
+        // Reset the form
+        setState(() {
+          _images.clear();
+          titleController.clear();
+          descriptionController.clear();
+          locationController.clear();
+          selectedValue = null;
+        });
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $error')),
+        );
+      } finally {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields.')),
+      );
     }
   }
 
@@ -76,6 +152,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                       color: AppTheme.themeGray,
                       fontWeight: FontWeight.w500)),
               Form(
+                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -83,16 +160,20 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                       onImagesSelected: _handleImagesSelected,
                     ),
                     EntryText(title: "Title"),
-                    TextField(
+                    TextFormField(
+                      controller: titleController,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
                     ),
                     SizedBox(height: 12),
                     EntryText(title: "Description"),
-                    TextField(
+                    TextFormField(
+                      controller: descriptionController,
                       minLines: 5,
                       maxLines: 5,
                       decoration: InputDecoration(
@@ -100,6 +181,8 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
+                      validator: (value) =>
+                          value == null || value.isEmpty ? 'Required' : null,
                     ),
                     SizedBox(height: 12),
                     EntryText(title: "Category"),
@@ -159,9 +242,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                     ),
                     SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: () {
-                        // Add your submission logic here
-                      },
+                      onPressed: isSubmitting ? null : _submitReport,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF4267B2),
                         padding: const EdgeInsets.symmetric(
@@ -175,19 +256,21 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check, color: Colors.white),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Submit',
-                            style:
-                                GoogleFonts.poppins(color: AppTheme.themeWhite),
-                          ),
-                        ],
-                      ),
+                      child: isSubmitting
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Row(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Submit',
+                                  style: GoogleFonts.poppins(
+                                      color: AppTheme.themeWhite),
+                                ),
+                              ],
+                            ),
                     )
                   ],
                 ),
@@ -202,7 +285,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
 
 class EntryText extends StatelessWidget {
   final String title;
-  const EntryText({required this.title});
+  const EntryText({super.key, required this.title});
   @override
   Widget build(BuildContext context) {
     return Row(children: [

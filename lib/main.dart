@@ -10,6 +10,7 @@ import 'package:fyp_civic_connect/screens/forgot_password.dart';
 import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/screens/report_issue_screen.dart';
 import 'package:fyp_civic_connect/screens/splash_scren.dart';
+import 'package:fyp_civic_connect/services/supabase_client.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 
 import '../screens/signup_screen.dart';
@@ -21,6 +22,7 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await SupabaseService.initialize();
   runApp(CivicConnectApp());
 }
 
