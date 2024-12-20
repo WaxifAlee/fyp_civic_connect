@@ -54,6 +54,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     });
   }
 
+  void _goToCurrentLocation() async {
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
+    _mapController?.animateCamera(CameraUpdate.newLatLng(
+      LatLng(position.latitude, position.longitude),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,9 +84,17 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   }
                 : {},
           ),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: FloatingActionButton(
+              onPressed: _goToCurrentLocation,
+              child: Icon(Icons.my_location),
+            ),
+          ),
           if (_pickedLocation != null)
             Positioned(
-              bottom: 20,
+              bottom: 80,
               left: 20,
               right: 20,
               child: ElevatedButton(

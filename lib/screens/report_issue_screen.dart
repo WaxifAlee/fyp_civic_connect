@@ -217,6 +217,16 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                                     borderRadius: BorderRadius.circular(8.0),
                                   ),
                                 ),
+                                // Add validator for location field
+                                onChanged: (value) {
+                                  if (value.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content:
+                                              Text('Location is required.')),
+                                    );
+                                  }
+                                },
                               ),
                             ],
                           ),
@@ -257,7 +267,19 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                         ),
                       ),
                       child: isSubmitting
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? Row(
+                              mainAxisSize: MainAxisSize.max,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Please Wait...',
+                                  style: GoogleFonts.poppins(
+                                      color: AppTheme.themeWhite),
+                                ),
+                              ],
+                            )
                           : Row(
                               mainAxisSize: MainAxisSize.max,
                               mainAxisAlignment: MainAxisAlignment.center,
