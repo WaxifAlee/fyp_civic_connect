@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/main.dart';
 import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
@@ -75,9 +76,7 @@ class _SplashScreenState extends State<SplashScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => Profile(
-                user: globalCitizenUser,
-              ),
+              builder: (context) => Profile(),
             ),
           );
         } catch (fetchError) {
@@ -89,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen> {
         // Navigate to LoginScreen if the user is not authenticated
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
+          MaterialPageRoute(builder: (context) => WelcomeScreen()),
         );
       }
     } catch (e) {

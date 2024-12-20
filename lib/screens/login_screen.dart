@@ -46,10 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-            builder: (context) => DashboardPage(
-                  user: globalCitizenUser,
-                )),
+        MaterialPageRoute(builder: (context) => DashboardPage()),
       );
     } catch (e) {
       print("Error Mesasage: $e");

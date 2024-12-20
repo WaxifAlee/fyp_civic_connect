@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/models/citizen_user.dart';
+import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart';
 
 class DashboardPage extends StatefulWidget {
-  final CitizenUser? user;
-  const DashboardPage({super.key, required this.user});
+  const DashboardPage({super.key});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -46,8 +46,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final String? username = widget.user!.fullName;
-
+    final displayPicture = globalCitizenUser!.displayPicture;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -87,7 +86,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: CircleAvatar(
                       radius: 84,
                       backgroundImage: NetworkImage(
-                          "https://avatar.iran.liara.run/username?username=$username"),
+                          "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"),
                     ),
                   ),
                   SizedBox(height: 16),
@@ -95,7 +94,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        username ?? "Hmm You are...",
+                        globalCitizenUser!.fullName ?? "Hmm You are...",
                         style: GoogleFonts.poppins(
                           fontSize: 30,
                           fontWeight: FontWeight.w500,

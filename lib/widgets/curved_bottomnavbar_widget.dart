@@ -29,17 +29,13 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
       case 0:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-              builder: (context) => DashboardPage(user: globalCitizenUser)),
+          MaterialPageRoute(builder: (context) => DashboardPage()),
         );
         break;
       case 1:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
-              builder: (context) => Profile(
-                    user: globalCitizenUser,
-                  )),
+          MaterialPageRoute(builder: (context) => Profile()),
         );
 
         break;

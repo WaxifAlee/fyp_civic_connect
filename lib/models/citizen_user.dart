@@ -10,6 +10,7 @@ class CitizenUser {
   String? _displayPicture;
   String? _cnic;
   String? _gender;
+  String? _joinDate;
 
   // Constructor
   CitizenUser({
@@ -21,6 +22,7 @@ class CitizenUser {
     required String? displayPicture,
     required String? cnic,
     required String? gender,
+    required String? joinDate,
   }) {
     _uid = uid;
     _fullName = fullName;
@@ -30,6 +32,7 @@ class CitizenUser {
     _displayPicture = displayPicture;
     _cnic = cnic;
     _gender = gender;
+    _joinDate = joinDate;
   }
 
   // Getters
@@ -41,6 +44,7 @@ class CitizenUser {
   String? get displayPicture => _displayPicture;
   String? get cnic => _cnic;
   String? get gender => _gender;
+  String? get joinDate => _joinDate;
 
   // Setters
   set uid(String? value) => _uid = value;
@@ -51,4 +55,5 @@ class CitizenUser {
   set displayPicture(String? value) => _displayPicture = value;
   set cnic(String? value) => _cnic = value;
   set gender(String? value) => _gender = value;
+  set joinDate(String? value) => _joinDate = value;
 }

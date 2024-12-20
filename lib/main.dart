@@ -11,7 +11,7 @@ import 'package:fyp_civic_connect/screens/profile.dart';
 import 'package:fyp_civic_connect/screens/report_issue_screen.dart';
 import 'package:fyp_civic_connect/screens/splash_scren.dart';
 import 'package:fyp_civic_connect/services/supabase_client.dart';
-import 'package:fyp_civic_connect/services/user_service.dart';
+import 'package:fyp_civic_connect/themes/app_theme.dart';
 
 import '../screens/signup_screen.dart';
 import 'package:flutter/material.dart';
@@ -42,10 +42,9 @@ class CivicConnectApp extends StatelessWidget {
         '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
         '/notifications': (context) => NotificationScreen(),
-        '/dashboard': (context) => DashboardPage(user: globalCitizenUser),
-        '/profile': (context) => Profile(
-              user: globalCitizenUser,
-            ),
+        '/dashboard': (context) => DashboardPage(),
+        '/profile': (context) => Profile(),
+        '/welcome': (context) => WelcomeScreen()
       },
     );
   }
@@ -74,7 +73,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).primaryColor,
+      backgroundColor: AppTheme.themePurple,
       body: Column(
         children: [
           // Top section with colorful background (35% of screen height)

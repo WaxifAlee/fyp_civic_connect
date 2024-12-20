@@ -277,7 +277,7 @@ class _SignupFormState extends State<SignupForm> {
               child: TextFormField(
                   controller: widget.cnicController,
                   decoration: InputDecoration(
-                    labelText: " CNIC",
+                    labelText: " CNIC (XXXXX-XXXXXXX-X)",
                     labelStyle: TextStyle(
                       color: AppTheme.themePlaceHolderText,
                       fontSize: 14,

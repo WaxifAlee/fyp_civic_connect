@@ -11,8 +11,7 @@ import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class Profile extends StatelessWidget {
-  final CitizenUser? user;
-  const Profile({super.key, required this.user});
+  const Profile({super.key});
 
   Future<void> signOutUser(BuildContext context) async {
     await FirebaseAuth.instance.signOut();
@@ -114,8 +113,9 @@ class Profile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String? userName = user?.fullName ?? "User Name";
-    String? userEmail = user?.email ?? "user@example.com";
+    String? userName = globalCitizenUser!.fullName ?? "User Name";
+    String? userEmail = globalCitizenUser!.email ?? "user@example.com";
+    final displayPicture = globalCitizenUser!.displayPicture;
     return Scaffold(
       bottomNavigationBar: CustomNavBarCurved(),
       appBar: AppBar(
@@ -125,7 +125,7 @@ class Profile extends StatelessWidget {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => DashboardPage(user: globalCitizenUser),
+                builder: (context) => DashboardPage(),
               ),
             );
           },
@@ -147,7 +147,7 @@ class Profile extends StatelessWidget {
                 child: CircleAvatar(
                   radius: 66,
                   backgroundImage: NetworkImage(
-                      "https://avatar.iran.liara.run/username?username=$userName"),
+                      "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"),
                 ),
               ),
               SizedBox(height: 12),
@@ -256,10 +256,20 @@ class Profile extends StatelessWidget {
                     Divider(),
                     buildUserInfoRow(Icons.email, userEmail),
                     Divider(),
-                    buildUserInfoRow(Icons.phone, user?.phone ?? "N/A"),
+                    buildUserInfoRow(
+                        Icons.phone, globalCitizenUser!.phone ?? "N/A"),
                     Divider(),
                     buildUserInfoRow(Icons.location_on,
-                        user?.location ?? "No Address Provided"),
+                        globalCitizenUser!.location ?? "No Address Provided"),
+                    Divider(),
+                    buildUserInfoRow(Icons.credit_card,
+                        globalCitizenUser!.cnic ?? "N/A"), // CNIC
+                    Divider(),
+                    buildUserInfoRow(Icons.person_outline,
+                        globalCitizenUser!.gender ?? "N/A"), // Gender
+                    Divider(),
+                    buildUserInfoRow(Icons.calendar_today,
+                        globalCitizenUser!.joinDate ?? "N/A"), // Joining Date
                   ],
                 ),
               ),
