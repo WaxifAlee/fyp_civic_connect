@@ -20,6 +20,9 @@ Future<void> fetchAndSetCitizenUser(String userId) async {
         email: userData['email'],
         location: userData['locations'],
         phone: userData['phone'],
+        displayPicture: userData['profile_picture'],
+        cnic: userData['cnic'],
+        gender: userData['gender'],
       );
     } else {
       throw Exception('User data does not exist.');

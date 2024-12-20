@@ -2,6 +2,8 @@
 
 import '../themes/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class SignupForm extends StatefulWidget {
   final TextEditingController emailController;
@@ -10,8 +12,12 @@ class SignupForm extends StatefulWidget {
   final TextEditingController usernameController;
   final TextEditingController addressController;
   final TextEditingController phoneController;
+  final TextEditingController cnicController;
+  final TextEditingController genderController;
+  final TextEditingController profilePictureController;
   final GlobalKey<FormState> formKey;
   final VoidCallback onSubmit;
+  final Function(XFile?) onImagePicked;
 
   const SignupForm(
       {super.key,
@@ -22,7 +28,11 @@ class SignupForm extends StatefulWidget {
       required this.formKey,
       required this.onSubmit,
       required this.addressController,
-      required this.phoneController});
+      required this.phoneController,
+      required this.cnicController,
+      required this.genderController,
+      required this.profilePictureController,
+      required this.onImagePicked});
 
   @override
   State<SignupForm> createState() => _SignupFormState();
@@ -30,12 +40,57 @@ class SignupForm extends StatefulWidget {
 
 class _SignupFormState extends State<SignupForm> {
   bool isPasswordVisible = false;
+  XFile? _profileImage;
+
+  Future<void> _pickImage() async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    setState(() {
+      _profileImage = image;
+    });
+    widget.onImagePicked(_profileImage);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Form(
       key: widget.formKey,
       child: Column(children: [
+        SizedBox(height: 6),
+
+        // Profile Picture Picker Row with Icon
+        Row(
+          children: [
+            Icon(Icons.image, color: AppTheme.themePlaceHolderText),
+            SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.themePlaceHolderText),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _profileImage == null
+                      ? Center(
+                          child: Text(
+                            "Tap to select profile picture",
+                            style: TextStyle(
+                              color: AppTheme.themePlaceHolderText,
+                              fontSize: 14,
+                            ),
+                          ),
+                        )
+                      : Image.file(
+                          File(_profileImage!.path),
+                          fit: BoxFit.cover,
+                        ),
+                ),
+              ),
+            )
+          ],
+        ),
         Row(
           children: [
             Icon(
@@ -211,6 +266,75 @@ class _SignupFormState extends State<SignupForm> {
             )
           ],
         ),
+        SizedBox(height: 6),
+
+        // CNIC Field Row with Icon
+        Row(
+          children: [
+            Icon(Icons.credit_card, color: AppTheme.themePlaceHolderText),
+            SizedBox(width: 12),
+            Expanded(
+              child: TextFormField(
+                  controller: widget.cnicController,
+                  decoration: InputDecoration(
+                    labelText: " CNIC",
+                    labelStyle: TextStyle(
+                      color: AppTheme.themePlaceHolderText,
+                      fontSize: 14,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your CNIC';
+                    }
+                    if (value.length != 15) {
+                      return 'CNIC must be 15 characters long';
+                    }
+                    return null;
+                  }),
+            )
+          ],
+        ),
+        SizedBox(height: 6),
+
+        // Gender Dropdown Row with Icon
+        Row(
+          children: [
+            Icon(Icons.person_outline, color: AppTheme.themePlaceHolderText),
+            SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: null,
+                items: ['Male', 'Female', 'Other']
+                    .map((label) => DropdownMenuItem(
+                          child: Text(label),
+                          value: label,
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    widget.genderController.text = value!;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: " Gender",
+                  labelStyle: TextStyle(
+                    color: AppTheme.themePlaceHolderText,
+                    fontSize: 14,
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please select your gender';
+                  }
+                  return null;
+                },
+              ),
+            )
+          ],
+        ),
+
+        SizedBox(height: 6),
 
         SizedBox(height: 16),
 

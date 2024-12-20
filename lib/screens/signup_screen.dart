@@ -1,11 +1,17 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:fyp_civic_connect/widgets/back_button.dart';
 import 'package:fyp_civic_connect/widgets/signup_form.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase/supabase.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -22,7 +28,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _cnicController = TextEditingController();
+  final TextEditingController _genderController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  XFile? _profileImage;
 
   @override
   void dispose() {
@@ -31,17 +40,43 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
+  Future<String?> _uploadImage(XFile image) async {
+    final client = Supabase.instance.client;
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}_${image.name}';
+    final response = await client.storage
+        .from('profile-pictures')
+        .upload(fileName, File(image.path));
+    if (response.isNotEmpty) {
+      return response;
+    } else {
+      return null;
+    }
+  }
+
   void _handleSignUp() async {
     try {
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
               email: _emailController.text, password: _passwordController.text);
 
+      String? imageUrl;
+      if (_profileImage != null) {
+        imageUrl = await _uploadImage(_profileImage!);
+      }
+
       final userData = {
         'full_name': _usernameController.text,
         'locations': _addressController.text,
+        'email': _emailController.text,
         'phone': _phoneController.text,
-        'email': _emailController.text
+        'password': _passwordController.text,
+        'confirm_password': _confirmpasswordController.text,
+        'role': 'citizen',
+        'profile_picture': imageUrl,
+        'created_at': DateTime.now(),
+        'updated_at': DateTime.now(),
+        'cnic': _cnicController.text,
+        'gender': _genderController.text,
       };
 
       if (credential.user != null) {
@@ -95,6 +130,10 @@ class _SignupScreenState extends State<SignupScreen> {
       appBar: AppBar(
         backgroundColor: AppTheme.themeWhite,
         leading: const CustomBackButton(backTo: "/login"),
+        title: Text(
+          "Register an Account",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
       ),
       backgroundColor: AppTheme.themeWhite,
       body: Padding(
@@ -107,12 +146,8 @@ class _SignupScreenState extends State<SignupScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                "Register an Account",
-                style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.themeGray),
+              SizedBox(
+                height: 25,
               ),
               Padding(
                 padding: const EdgeInsets.all(0),
@@ -129,8 +164,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   addressController: _addressController,
                   phoneController: _phoneController,
                   confirmPasswordController: _confirmpasswordController,
+                  cnicController: _cnicController,
+                  genderController: _genderController,
+                  profilePictureController: TextEditingController(),
                   formKey: _formKey,
-                  onSubmit: _handleSignUp),
+                  onSubmit: _handleSignUp,
+                  onImagePicked: (image) {
+                    setState(() {
+                      _profileImage = image;
+                    });
+                  }),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

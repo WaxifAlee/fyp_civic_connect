@@ -137,50 +137,50 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 42,
-                  child: TextButton(
-                    onPressed: () {},
-                    // Googe Auth API from here
-
-                    style: ButtonStyle(
-                      backgroundColor:
-                          WidgetStateProperty.all(AppTheme.themeSecondaryGray),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // Google icon on the left
-                        Image.asset(
-                          'assets/images/google_logo.png',
-                          height: 30, // Set the size of the Google icon
-                          width: 30,
-                        ),
-                        SizedBox(width: 8), // Space between the icon and text
-                        Expanded(
-                          child: Text(
-                            "Sign In with Google",
-                            textAlign: TextAlign
-                                .center, // Center the text within the remaining space
-                            style: TextStyle(
-                              color: AppTheme.themePlaceHolderText,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
                 SizedBox(height: 16),
+                // SizedBox(
+                //   width: double.infinity,
+                //   height: 42,
+                //   child: TextButton(
+                //     onPressed: () {},
+                //     // Googe Auth API from here
+
+                //     style: ButtonStyle(
+                //       backgroundColor:
+                //           WidgetStateProperty.all(AppTheme.themeSecondaryGray),
+                //       shape: WidgetStateProperty.all(
+                //         RoundedRectangleBorder(
+                //           borderRadius: BorderRadius.circular(8),
+                //         ),
+                //       ),
+                //     ),
+                //     child: Row(
+                //       children: [
+                //         // Google icon on the left
+                //         Image.asset(
+                //           'assets/images/google_logo.png',
+                //           height: 30, // Set the size of the Google icon
+                //           width: 30,
+                //         ),
+                //         SizedBox(width: 8), // Space between the icon and text
+                //         Expanded(
+                //           child: Text(
+                //             "Sign In with Google",
+                //             textAlign: TextAlign
+                //                 .center, // Center the text within the remaining space
+                //             style: TextStyle(
+                //               color: AppTheme.themePlaceHolderText,
+                //               fontWeight: FontWeight.bold,
+                //               fontSize: 18,
+                //             ),
+                //           ),
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                // ),
+
+                // SizedBox(height: 16),
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

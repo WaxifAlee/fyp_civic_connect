@@ -118,7 +118,7 @@ class _LoginFormState extends State<LoginForm> {
               ],
             ),
 
-            const SizedBox(height: 34),
+            const SizedBox(height: 20),
 
             SizedBox(
               width: double.infinity,

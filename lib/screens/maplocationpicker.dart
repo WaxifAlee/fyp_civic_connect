@@ -41,11 +41,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
       }
     }
 
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    setState(() {
-      _initialPosition = LatLng(position.latitude, position.longitude);
-    });
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        _initialPosition = LatLng(position.latitude, position.longitude);
+      });
+    }
   }
 
   void _onMapTapped(LatLng position) {

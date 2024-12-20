@@ -124,7 +124,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.only(
-              left: AppTheme.borderPadding, right: AppTheme.borderPadding),
+              left: AppTheme.borderPadding,
+              right: AppTheme.borderPadding,
+              top: AppTheme.borderPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
