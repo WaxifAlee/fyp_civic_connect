@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/models/citizen_user.dart';
+import 'package:fyp_civic_connect/models/report.dart';
+import 'package:fyp_civic_connect/screens/explore_issues_screen.dart';
+import 'package:fyp_civic_connect/services/report_service.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,9 +18,45 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  final ReportService _reportService = ReportService();
+  bool _isLoading = true;
+  String _errorMessage = "";
+  int _solvedCount = 0;
+  int _reportedCount = 0;
+  int _pendingCount = 0;
+  List<Report> _recentReports = [];
+
   @override
   void initState() {
     super.initState();
+    _fetchDashboardData();
+  }
+
+  Future<void> _fetchDashboardData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = "";
+    });
+    try {
+      List<Report> reports = await _reportService.fetchReportsByCurrentUser();
+      setState(() {
+        _solvedCount =
+            reports.where((report) => report.status == "solved").length;
+        _reportedCount = reports.length;
+        _pendingCount =
+            reports.where((report) => report.status == "pending").length;
+        _recentReports =
+            reports.take(3).toList(); // Get the 3 most recent reports
+      });
+    } catch (error) {
+      setState(() {
+        _errorMessage = "Failed to load dashboard data. Please try again.";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   String getGreeting() {
@@ -29,19 +68,6 @@ class _DashboardPageState extends State<DashboardPage> {
     } else {
       return "Good Evening! \ud83c\udf15";
     }
-  }
-
-  Future<List<Map<String, dynamic>>> fetchRecentReports() async {
-    await Future.delayed(Duration(seconds: 2));
-    return [
-      {'title': 'Pot-Hole Repair', 'status': 'pending', 'date': '21/09/2024'},
-      {
-        'title': 'Street Light Broken',
-        'status': 'solved',
-        'date': '21/09/2024'
-      },
-      {'title': 'Pot-Hole Repair', 'status': 'declined', 'date': '21/09/2024'},
-    ];
   }
 
   @override
@@ -61,7 +87,7 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         actions: [
           Padding(
-            padding: EdgeInsets.only(right: 32),
+            padding: EdgeInsets.only(right: 12),
             child: IconButton(
               icon: Icon(Icons.notifications_rounded, color: Colors.black),
               onPressed: () {
@@ -71,163 +97,168 @@ class _DashboardPageState extends State<DashboardPage> {
           )
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: EdgeInsets.only(top: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Profile Section
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 90,
-                    backgroundColor: Color(0xffB2AFEF),
-                    child: CircleAvatar(
-                      radius: 84,
-                      backgroundImage: NetworkImage(
-                          "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+              ? Center(child: Text(_errorMessage))
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Profile Section
+                        Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 90,
+                              backgroundColor: Color(0xffB2AFEF),
+                              child: CircleAvatar(
+                                radius: 84,
+                                backgroundImage: NetworkImage(
+                                    "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"),
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Text(
+                                  globalCitizenUser!.fullName ??
+                                      "Hmm You are...",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  getGreeting(),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 24),
+                        // Buttons
+                        Padding(
+                          padding: EdgeInsets.only(left: 5, right: 5),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {},
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xffB2AFEF),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 18),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                ),
+                                child: Text(
+                                  'View My Reports',
+                                  style: GoogleFonts.poppins(
+                                      color: Color(0xff000000),
+                                      fontWeight: FontWeight.normal,
+                                      fontSize: 14),
+                                ),
+                              ),
+                              OutlinedButton(
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              ExploreIssuesScreen()));
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                      color: Color(0xffB2AFEF), width: 3.0),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 20),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Explore Issues',
+                                  style: GoogleFonts.poppins(
+                                    color: AppTheme.themeGray,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        // Overview Section
+                        Align(
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Overview',
+                            style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                textStyle: TextStyle()),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Container(
+                          padding: EdgeInsets.all(20.0),
+                          decoration: BoxDecoration(
+                              border: Border.all(color: Color(0xFFD9D9D9))),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildOverviewItem(_solvedCount.toString(),
+                                  'Solved', AppTheme.mintGreen),
+                              _buildOverviewItem(_reportedCount.toString(),
+                                  'Reported', AppTheme.softPurple),
+                              _buildOverviewItem(_pendingCount.toString(),
+                                  'Pending', AppTheme.honeyYellow),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        // Recent Reports Section
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Padding(
+                              padding: EdgeInsets.only(left: 25),
+                              child: Text(
+                                'Recent Reports',
+                                style: GoogleFonts.poppins(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.themePurple),
+                              )),
+                        ),
+                        SizedBox(height: 12),
+                        _recentReports.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No reports found.',
+                                  style:
+                                      GoogleFonts.poppins(color: Colors.grey),
+                                ),
+                              )
+                            : Column(
+                                children: _recentReports
+                                    .map((report) => _buildRecentReport(
+                                        report.title ?? 'No Title',
+                                        report.status ?? 'Unknown',
+                                        report.date.toString().split(' ')[0]))
+                                    .toList(),
+                              ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        globalCitizenUser!.fullName ?? "Hmm You are...",
-                        style: GoogleFonts.poppins(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        getGreeting(),
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-              // Buttons
-              Padding(
-                padding: EdgeInsets.only(left: 5, right: 5),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xffB2AFEF),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'View My Reports',
-                        style: GoogleFonts.poppins(
-                            color: Color(0xff000000),
-                            fontWeight: FontWeight.normal,
-                            fontSize: 14),
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Color(0xffB2AFEF), width: 3.0),
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        'Explore Issues',
-                        style: GoogleFonts.poppins(
-                          color: AppTheme.themeGray,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-
-              SizedBox(height: 20),
-              // Overview Section
-              Align(
-                alignment: Alignment.center,
-                child: Text(
-                  'Overview',
-                  style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      textStyle: TextStyle()),
-                ),
-              ),
-
-              SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.all(20.0),
-                decoration:
-                    BoxDecoration(border: Border.all(color: Color(0xFFD9D9D9))),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildOverviewItem('59', 'Solved', AppTheme.mintGreen),
-                    _buildOverviewItem('69', 'Reported', AppTheme.softPurple),
-                    _buildOverviewItem('5', 'Pending', AppTheme.honeyYellow),
-                  ],
-                ),
-              ),
-
-              SizedBox(height: 12),
-              // Recent Reports Section
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                    padding: EdgeInsets.only(left: 25),
-                    child: Text(
-                      'Recent Reports',
-                      style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.themePurple),
-                    )),
-              ),
-              SizedBox(height: 12),
-
-              FutureBuilder<List<Map<String, dynamic>>>(
-                future: fetchRecentReports(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                    return Column(
-                      children: snapshot.data!
-                          .map((report) => _buildRecentReport(report['title'],
-                              report['status'], report['date']))
-                          .toList(),
-                    );
-                  } else {
-                    return Center(
-                      child: Text(
-                        'No reports found.',
-                        style: GoogleFonts.poppins(color: Colors.grey),
-                      ),
-                    );
-                  }
-                },
-              )
-            ],
-          ),
-        ),
-      ),
       bottomNavigationBar: CustomNavBarCurved(),
     );
   }

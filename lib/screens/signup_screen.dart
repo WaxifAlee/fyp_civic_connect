@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fyp_civic_connect/screens/verification_waiting_screen.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:fyp_civic_connect/widgets/back_button.dart';
 import 'package:fyp_civic_connect/widgets/signup_form.dart';
@@ -68,7 +69,6 @@ class _SignupScreenState extends State<SignupScreen> {
         'locations': _addressController.text,
         'email': _emailController.text,
         'phone': _phoneController.text,
-        'password': _passwordController.text,
         'confirm_password': _confirmpasswordController.text,
         'role': 'citizen',
         'profile_picture': imageUrl,
@@ -90,7 +90,9 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         );
         FirebaseAuth.instance.currentUser!.sendEmailVerification();
-        Navigator.pushNamed(context, '/verificationWaiting');
+        Navigator.push(context, MaterialPageRoute(builder: (context) {
+          return VerificationWaitingScreen();
+        }));
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {

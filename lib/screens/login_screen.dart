@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
+import 'package:fyp_civic_connect/screens/verification_waiting_screen.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../themes/app_theme.dart';
@@ -50,7 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => DashboardPage()),
         );
       } else {
-        Navigator.pushNamed(context, '/verificationWaiting');
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => VerificationWaitingScreen()));
       }
     } catch (e) {
       print("Error Mesasage: $e");

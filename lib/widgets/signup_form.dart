@@ -41,6 +41,7 @@ class SignupForm extends StatefulWidget {
 class _SignupFormState extends State<SignupForm> {
   bool isPasswordVisible = false;
   XFile? _profileImage;
+  bool _isCreatingAccount = false; // Add this state variable
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -382,6 +383,10 @@ class _SignupFormState extends State<SignupForm> {
           child: TextButton(
             onPressed: () {
               if (widget.formKey.currentState!.validate()) {
+                setState(() {
+                  _isCreatingAccount =
+                      true; // Set to true when button is pressed
+                });
                 widget.onSubmit();
               } else {
                 showDialog(
@@ -412,9 +417,11 @@ class _SignupFormState extends State<SignupForm> {
                 shape: WidgetStatePropertyAll(RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ))),
-            child: const Text(
-              "Sign Up",
-              style: TextStyle(
+            child: Text(
+              _isCreatingAccount
+                  ? "Creating Account"
+                  : "Sign Up", // Change text based on state
+              style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 18),

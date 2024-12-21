@@ -1,6 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/screens/login_screen.dart';
 import 'package:fyp_civic_connect/screens/notifications.dart';
 

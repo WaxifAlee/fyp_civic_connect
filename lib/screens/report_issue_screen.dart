@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fyp_civic_connect/screens/maplocationpicker.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
@@ -85,7 +87,11 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           'category': selectedValue,
           'location': locationController.text,
           'images': imageUrls,
+          'reporterId': FirebaseAuth.instance.currentUser!.uid,
           'timestamp': FieldValue.serverTimestamp(),
+          'status': 'pending',
+          'avatar': globalCitizenUser!.displayPicture,
+          'reporterName': globalCitizenUser!.fullName,
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

@@ -17,40 +17,20 @@ class NotificationScreen extends StatelessWidget {
             Navigator.pop(context); // Navigate back to the previous screen
           },
         ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'CivicConnect',
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.black),
-            onPressed: () {},
+        title: Text(
+          'Notifications',
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
           ),
-        ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Notifications',
-              style: GoogleFonts.poppins(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            SizedBox(height: 16),
             Expanded(
               child: ListView(
                 children: [
