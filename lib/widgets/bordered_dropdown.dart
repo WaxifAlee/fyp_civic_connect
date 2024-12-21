@@ -7,12 +7,12 @@ class BorderedDropdown extends StatelessWidget {
   final ValueChanged<String?> onChanged; // Callback for when the value changes
 
   const BorderedDropdown({
-    Key? key,
+    super.key,
     required this.value,
     required this.hintText,
     required this.items,
     required this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

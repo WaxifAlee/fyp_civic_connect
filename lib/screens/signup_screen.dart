@@ -10,7 +10,6 @@ import 'package:fyp_civic_connect/widgets/signup_form.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase/supabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -90,7 +89,8 @@ class _SignupScreenState extends State<SignupScreen> {
             content: Text('User registered successfully! 🎉'),
           ),
         );
-        Navigator.pushNamed(context, '/login');
+        FirebaseAuth.instance.currentUser!.sendEmailVerification();
+        Navigator.pushNamed(context, '/verificationWaiting');
       }
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {

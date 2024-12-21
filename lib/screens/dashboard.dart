@@ -123,9 +123,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xffB2AFEF),
                         padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
@@ -141,9 +141,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: Color(0xffB2AFEF), width: 3.0),
                         padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: Text(
@@ -186,7 +186,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
 
-              SizedBox(height: 24),
+              SizedBox(height: 12),
               // Recent Reports Section
               Align(
                 alignment: Alignment.centerLeft,
@@ -200,6 +200,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           color: AppTheme.themePurple),
                     )),
               ),
+              SizedBox(height: 12),
 
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: fetchRecentReports(),
@@ -256,21 +257,21 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildRecentReport(String title, String status, String date) {
     final Color? statusColor;
     final Icon? statusIcon;
-    final String? _description;
+    final String? description;
 
     if (status == "declined") {
       statusColor = AppTheme.themePink;
       statusIcon = Icon(Icons.cancel_rounded, size: 32, color: Colors.black);
-      _description = "This report was declined by the admin.";
+      description = "This report was declined by the admin.";
     } else if (status == "pending") {
       statusColor = AppTheme.honeyYellow;
       statusIcon = Icon(Icons.feedback_outlined, color: Colors.black, size: 32);
-      _description = "This report is waiting for admin's response.";
+      description = "This report is waiting for admin's response.";
     } else {
       statusColor = AppTheme.mintGreen;
       statusIcon = Icon(Icons.check_circle_outline_rounded,
           color: Colors.black, size: 32);
-      _description = "This report has been successfully solved.";
+      description = "This report has been successfully solved.";
     }
 
     return Container(
@@ -297,7 +298,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(_description,
+                  Text(description,
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.w400,
                           fontSize: 12,

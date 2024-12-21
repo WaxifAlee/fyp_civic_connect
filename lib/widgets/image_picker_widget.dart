@@ -5,8 +5,7 @@ import 'package:image_picker/image_picker.dart';
 class ImagePickerWidget extends StatefulWidget {
   final Function(List<XFile>) onImagesSelected;
 
-  const ImagePickerWidget({Key? key, required this.onImagesSelected})
-      : super(key: key);
+  const ImagePickerWidget({super.key, required this.onImagesSelected});
 
   @override
   _ImagePickerWidgetState createState() => _ImagePickerWidgetState();
@@ -18,7 +17,7 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
 
   Future<void> _pickImages() async {
     try {
-      final List<XFile>? pickedFiles = await _picker.pickMultiImage();
+      final List<XFile> pickedFiles = await _picker.pickMultiImage();
       if (pickedFiles != null) {
         setState(() {
           _selectedImages = pickedFiles.length > 3

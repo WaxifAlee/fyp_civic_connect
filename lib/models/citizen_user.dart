@@ -1,5 +1,3 @@
-import 'custom_location.dart';
-
 class CitizenUser {
   // Private members
   String? _uid;

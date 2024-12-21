@@ -27,7 +27,7 @@ void main() async {
 }
 
 class CivicConnectApp extends StatelessWidget {
-  CivicConnectApp({super.key});
+  const CivicConnectApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +76,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
       backgroundColor: AppTheme.themePurple,
       body: Column(
         children: [
+          SizedBox(height: screenHeight * 0.04),
           // Top section with colorful background (35% of screen height)
           Expanded(
             flex: 30,

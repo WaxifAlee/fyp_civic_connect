@@ -1,10 +1,7 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:fyp_civic_connect/main.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
 import 'package:fyp_civic_connect/screens/profile.dart';
-import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 
 class CustomNavBarCurved extends StatefulWidget {

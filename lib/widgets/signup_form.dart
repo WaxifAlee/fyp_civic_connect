@@ -43,8 +43,8 @@ class _SignupFormState extends State<SignupForm> {
   XFile? _profileImage;
 
   Future<void> _pickImage() async {
-    final ImagePicker _picker = ImagePicker();
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     setState(() {
       _profileImage = image;
     });
@@ -307,8 +307,8 @@ class _SignupFormState extends State<SignupForm> {
                 value: null,
                 items: ['Male', 'Female', 'Other']
                     .map((label) => DropdownMenuItem(
-                          child: Text(label),
                           value: label,
+                          child: Text(label),
                         ))
                     .toList(),
                 onChanged: (value) {

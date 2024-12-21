@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fyp_civic_connect/screens/maplocationpicker.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';

@@ -1,12 +1,15 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/main.dart';
+import 'package:fyp_civic_connect/screens/dashboard.dart';
+import 'package:fyp_civic_connect/screens/login_screen.dart';
 import 'package:fyp_civic_connect/screens/profile.dart';
+import 'package:fyp_civic_connect/screens/verification_waiting_screen.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 // Your dashboard or next screen
-import 'login_screen.dart'; // Optional, for unauthenticated users
+// Optional, for unauthenticated users
 import 'package:firebase_auth/firebase_auth.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -73,12 +76,21 @@ class _SplashScreenState extends State<SplashScreen> {
           await fetchAndSetCitizenUser(currentUser.uid);
 
           // Navigate to DashboardPage if authenticated and user data is fetched
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => Profile(),
-            ),
-          );
+          if (currentUser.emailVerified) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DashboardPage(),
+              ),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VerificationWaitingScreen(),
+              ),
+            );
+          }
         } catch (fetchError) {
           // Handle errors during user data fetching
           print('Error fetching user data: $fetchError');
@@ -89,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen> {
         // Navigate to LoginScreen if the user is not authenticated
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => WelcomeScreen()),
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       }
     } catch (e) {

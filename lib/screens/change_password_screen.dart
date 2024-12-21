@@ -7,6 +7,8 @@ import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
+  const ChangePasswordScreen({super.key});
+
   @override
   _ChangePasswordScreenState createState() => _ChangePasswordScreenState();
 }

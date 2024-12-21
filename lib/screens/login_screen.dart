@@ -44,10 +44,14 @@ class _LoginScreenState extends State<LoginScreen> {
           content: Text('Login Successful! 🎉'),
         ),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => DashboardPage()),
-      );
+      if (FirebaseAuth.instance.currentUser!.emailVerified) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardPage()),
+        );
+      } else {
+        Navigator.pushNamed(context, '/verificationWaiting');
+      }
     } catch (e) {
       print("Error Mesasage: $e");
       ScaffoldMessenger.of(context).showSnackBar(
