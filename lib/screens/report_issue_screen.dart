@@ -13,6 +13,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
+import '../utils/image_compression.dart';
 
 class ReportIssueScreen extends StatefulWidget {
   const ReportIssueScreen({super.key});
@@ -66,9 +67,13 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           String imageId = const Uuid().v4();
           final file = File(image.path);
 
+          // Compress image using TinyPNG
+          final compressedFile = await ImageCompression.compressImage(file);
+
           final response = await supabase.storage
               .from('reports-images')
-              .uploadBinary('public/$imageId.jpg', file.readAsBytesSync());
+              .uploadBinary(
+                  'public/$imageId.jpg', compressedFile.readAsBytesSync());
 
           if (response.isEmpty) {
             throw Exception('Failed to upload image');

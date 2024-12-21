@@ -137,6 +137,7 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                 }
                                 final report = _filteredReports[index];
                                 return IssueCard(
+                                  category: report.category ?? "No Category",
                                   reporterName:
                                       report.reporterName ?? 'Unknown',
                                   date: report.date.toString(),
@@ -147,7 +148,8 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   description:
                                       report.description ?? "No Description",
                                   location: report.location ?? "No Location",
-                                  status: '', // Add status if available
+                                  status: report.status ??
+                                      "No Status", // Add status if available
                                   latitude: double.parse(report.location!
                                       .split(',')[0]), // Add latitude
                                   longitude: double.parse(report.location!

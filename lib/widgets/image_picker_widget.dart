@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../utils/image_compression.dart';
 
 class ImagePickerWidget extends StatefulWidget {
   final Function(List<XFile>) onImagesSelected;
@@ -19,10 +20,16 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
     try {
       final List<XFile> pickedFiles = await _picker.pickMultiImage();
       if (pickedFiles != null) {
+        List<XFile> compressedFiles = [];
+        for (XFile file in pickedFiles) {
+          final compressedFile =
+              await ImageCompression.compressImage(File(file.path));
+          compressedFiles.add(XFile(compressedFile.path));
+        }
         setState(() {
-          _selectedImages = pickedFiles.length > 3
-              ? pickedFiles.sublist(0, 3) // Limit to 3 images
-              : pickedFiles;
+          _selectedImages = compressedFiles.length > 3
+              ? compressedFiles.sublist(0, 3) // Limit to 3 images
+              : compressedFiles;
         });
         // Pass the selected images to the parent via the callback
         widget.onImagesSelected(_selectedImages);

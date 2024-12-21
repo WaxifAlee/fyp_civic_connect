@@ -16,6 +16,7 @@ class IssueCard extends StatelessWidget {
   final double latitude;
   final double longitude;
   final String date;
+  final String category;
 
   const IssueCard({
     Key? key,
@@ -29,6 +30,7 @@ class IssueCard extends StatelessWidget {
     required this.latitude,
     required this.longitude,
     required this.date,
+    required this.category,
   }) : super(key: key);
 
   void _openMap() async {
@@ -75,6 +77,7 @@ class IssueCard extends StatelessWidget {
                 ),
                 SizedBox(width: 12),
                 Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(width: 12),
                     Text(
@@ -119,7 +122,7 @@ class IssueCard extends StatelessWidget {
             SizedBox(height: 8),
             // Location & Status
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 GestureDetector(
                   onTap: _openMap,
@@ -128,7 +131,7 @@ class IssueCard extends StatelessWidget {
                       Icon(Icons.location_on, size: 16, color: Colors.red),
                       SizedBox(width: 4),
                       Text(
-                        location,
+                        'Open in Maps',
                         style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -137,11 +140,17 @@ class IssueCard extends StatelessWidget {
                     ],
                   ),
                 ),
+
+                Text(
+                  category,
+                  style: GoogleFonts.poppins(
+                      fontSize: 12, color: Colors.grey[600]),
+                ),
                 // Status Badge
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: status == "Resolved"
+                    color: status == "solved"
                         ? Colors.green[200]
                         : Colors.orange[200],
                     borderRadius: BorderRadius.circular(8),
@@ -150,8 +159,7 @@ class IssueCard extends StatelessWidget {
                     status,
                     style: GoogleFonts.poppins(
                       fontSize: 12,
-                      color:
-                          status == "Resolved" ? Colors.green : Colors.orange,
+                      color: status == "solved" ? Colors.green : Colors.orange,
                     ),
                   ),
                 ),
