@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart'; // For launching Google Maps
 import 'package:intl/intl.dart'; // For date formatting
 
-class IssueCard extends StatelessWidget {
+class IssueCard extends StatefulWidget {
   final String reporterName;
   final String profileImage;
   final List<String> issueImages;
@@ -33,14 +33,53 @@ class IssueCard extends StatelessWidget {
     required this.category,
   }) : super(key: key);
 
+  @override
+  _IssueCardState createState() => _IssueCardState();
+}
+
+class _IssueCardState extends State<IssueCard> {
+  bool _isExpanded = false;
+
+  void _toggleExpand() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+    });
+  }
+
   void _openMap() async {
     final url =
-        'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+        'https://www.google.com/maps/search/?api=1&query=${widget.latitude},${widget.longitude}';
     if (await canLaunch(url)) {
       await launch(url);
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  void _showImageDialog(BuildContext context, List<String> images) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              SizedBox(
+                height: 600,
+                width: 600,
+                child: PageView.builder(
+                  itemCount: images.length,
+                  itemBuilder: (context, index) {
+                    return Image.network(images[index]);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   String _getTimeAgo(String date) {
@@ -60,112 +99,122 @@ class IssueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Reporter Info
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundImage: NetworkImage(profileImage),
-                  radius: 20,
-                ),
-                SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 12),
-                    Text(
-                      reporterName,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    Text(_getTimeAgo(date),
-                        style: GoogleFonts.poppins(fontSize: 10)),
-                  ],
-                )
-              ],
-            ),
-            SizedBox(height: 12),
-            // Title
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: 8),
-            // Image Slider
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ImageSlider(images: issueImages),
-            ),
-            SizedBox(height: 12),
-            // Description
-            Text(
-              description,
-              style: GoogleFonts.poppins(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 8),
-            // Location & Status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                GestureDetector(
-                  onTap: _openMap,
-                  child: Row(
+    return GestureDetector(
+      onTap: _toggleExpand,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Reporter Info
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(widget.profileImage),
+                    radius: 20,
+                  ),
+                  SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.location_on, size: 16, color: Colors.red),
-                      SizedBox(width: 4),
+                      SizedBox(width: 12),
                       Text(
-                        'Open in Maps',
+                        widget.reporterName,
                         style: GoogleFonts.poppins(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
+                      Text(_getTimeAgo(widget.date),
+                          style: GoogleFonts.poppins(fontSize: 10)),
                     ],
-                  ),
+                  )
+                ],
+              ),
+              SizedBox(height: 12),
+              // Title
+              Text(
+                widget.title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-
-                Text(
-                  category,
-                  style: GoogleFonts.poppins(
-                      fontSize: 12, color: Colors.grey[600]),
+              ),
+              SizedBox(height: 8),
+              // Image Slider
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: GestureDetector(
+                  onTap: () {
+                    _showImageDialog(context, widget.issueImages);
+                  },
+                  child: ImageSlider(images: widget.issueImages),
                 ),
-                // Status Badge
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: status == "solved"
-                        ? Colors.green[200]
-                        : Colors.orange[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    status,
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: status == "solved" ? Colors.green : Colors.orange,
+              ),
+              SizedBox(height: 12),
+              // Description
+              Text(
+                widget.description,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+                maxLines: _isExpanded ? null : 2,
+                overflow:
+                    _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+              ),
+              SizedBox(height: 8),
+              // Location & Status
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  GestureDetector(
+                    onTap: _openMap,
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on, size: 16, color: Colors.red),
+                        SizedBox(width: 4),
+                        Text(
+                          'Open in Maps',
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.blue[600],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  Text(
+                    widget.category,
+                    style: GoogleFonts.poppins(
+                        fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  // Status Badge
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: widget.status == "solved"
+                          ? Colors.green[200]
+                          : Colors.orange[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      widget.status == "solved"
+                          ? Icons.check
+                          : Icons.remove_red_eye,
+                      color: widget.status == "solved"
+                          ? Colors.green
+                          : Colors.orange,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

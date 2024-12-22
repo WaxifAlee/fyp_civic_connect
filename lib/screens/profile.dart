@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -8,6 +9,7 @@ import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key});
@@ -54,12 +56,19 @@ class Profile extends StatelessWidget {
     if (!confirmDelete) return;
 
     try {
-      // Delete the user account from Firebase Authentication
-      await user?.delete();
+      // Delete user profile picture from Supabase storage
+      final displayPicture = globalCitizenUser!.displayPicture;
+      if (displayPicture != null) {
+        await Supabase.instance.client.storage
+            .from('profile-pictures')
+            .remove([displayPicture.split('/')[1]]);
+      }
 
-      // Optionally delete user data from Firestore/Realtime DB
-      // Example (if using Firestore):
-      // await FirebaseFirestore.instance.collection('users').doc(user?.uid).delete();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user?.uid)
+          .delete();
+      await user?.delete();
 
       // Show success toast
       Fluttertoast.showToast(
@@ -174,8 +183,10 @@ class Profile extends StatelessWidget {
                 backgroundColor: Color(0xffB2AFEF),
                 child: CircleAvatar(
                   radius: 66,
-                  backgroundImage: NetworkImage(
-                      "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"),
+                  backgroundImage: NetworkImage(displayPicture != null
+                          ? "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"
+                          : "https://ui-avatars.com/api/?name=$userName&background=0D8ABC&color=fff&size=128" // Default avatar
+                      ),
                 ),
               ),
               SizedBox(height: 12),

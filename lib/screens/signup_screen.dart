@@ -55,6 +55,35 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _handleSignUp() async {
     try {
+      // Check if phone number or CNIC already exists
+      final phoneQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('phone', isEqualTo: _phoneController.text)
+          .get();
+      final cnicQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('cnic', isEqualTo: _cnicController.text)
+          .get();
+
+      if (phoneQuery.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Phone number is already associated with another account'),
+          ),
+        );
+        return;
+      }
+
+      if (cnicQuery.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('CNIC is already associated with another account'),
+          ),
+        );
+        return;
+      }
+
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
               email: _emailController.text, password: _passwordController.text);
@@ -117,6 +146,20 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error signing up: ${e.message}'),
+          ),
+        );
+      }
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Missing or insufficient permissions'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.message}'),
           ),
         );
       }

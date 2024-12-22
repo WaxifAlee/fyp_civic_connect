@@ -9,6 +9,7 @@ class Report {
   final String? status; // Ensure status is included
   final String? profilePicture;
   final DateTime? date;
+  final String? id;
 
   Report(
       {required this.category,
@@ -20,6 +21,6 @@ class Report {
       required this.status, // Ensure status is included
       required this.profilePicture,
       required this.reporterName,
-      required this.date // Ensure reporterName is included
-      });
+      required this.date, // Ensure reporterName is included
+      required this.id});
 }

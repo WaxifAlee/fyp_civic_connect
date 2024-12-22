@@ -305,7 +305,8 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                                 ),
                               ],
                             ),
-                    )
+                    ),
+                    SizedBox(height: 20),
                   ],
                 ),
               )

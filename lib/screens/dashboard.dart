@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/models/report.dart';
 import 'package:fyp_civic_connect/screens/explore_issues_screen.dart';
+import 'package:fyp_civic_connect/screens/my_reports_screen.dart';
 import 'package:fyp_civic_connect/services/report_service.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
@@ -116,7 +117,10 @@ class _DashboardPageState extends State<DashboardPage> {
                               child: CircleAvatar(
                                 radius: 84,
                                 backgroundImage: NetworkImage(
-                                    "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"),
+                                    displayPicture != null
+                                        ? "https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/$displayPicture"
+                                        : "https://ui-avatars.com/api/?name=${globalCitizenUser!.fullName}&background=0D8ABC&color=fff&size=128" // Default avatar
+                                    ),
                               ),
                             ),
                             SizedBox(height: 16),
@@ -150,7 +154,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              MyReportsScreen()));
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Color(0xffB2AFEF),
                                   padding: EdgeInsets.symmetric(
