@@ -92,6 +92,11 @@ class _SignupFormState extends State<SignupForm> {
             )
           ],
         ),
+        if (_profileImage == null)
+          Text(
+            'Profile picture is required',
+            style: TextStyle(color: Colors.red),
+          ),
         Row(
           children: [
             Icon(

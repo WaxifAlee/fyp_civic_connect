@@ -32,6 +32,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _genderController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   XFile? _profileImage;
+  final TextEditingController profilePictureController =
+      TextEditingController();
 
   @override
   void dispose() {
@@ -54,6 +56,15 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _handleSignUp() async {
+    if (_profileImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile picture is required'),
+        ),
+      );
+      return;
+    }
+
     try {
       // Check if phone number or CNIC already exists
       final phoneQuery = await FirebaseFirestore.instance
@@ -217,6 +228,8 @@ class _SignupScreenState extends State<SignupScreen> {
                   onImagePicked: (image) {
                     setState(() {
                       _profileImage = image;
+                      // Update the profile picture controller with the image path
+                      profilePictureController.text = image!.path;
                     });
                   }),
               Row(
