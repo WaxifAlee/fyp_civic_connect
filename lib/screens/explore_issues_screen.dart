@@ -59,16 +59,19 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
     });
   }
 
-  void _applyAdvancedFilters(
-      {String? location, DateTime? startDate, DateTime? endDate}) {
+  void _applyAdvancedFilters({String? category, String? status}) {
     setState(() {
       _filteredReports = _reports.where((report) {
-        bool matchesLocation = location == null || report.location == location;
-        bool matchesDate =
-            (startDate == null || report.date!.isAfter(startDate)) &&
-                (endDate == null || report.date!.isBefore(endDate));
-        return matchesLocation && matchesDate;
+        bool matchesCategory = category == null || report.category == category;
+        bool matchesStatus = status == null || report.status == status;
+        return matchesCategory && matchesStatus;
       }).toList();
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _filteredReports = _reports;
     });
   }
 
@@ -136,6 +139,21 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   _currentPage++;
                                 }
                                 final report = _filteredReports[index];
+                                double? latitude;
+                                double? longitude;
+                                if (report.location != null &&
+                                    report.location!.contains(',')) {
+                                  try {
+                                    latitude = double.parse(
+                                        report.location!.split(',')[0]);
+                                    longitude = double.parse(
+                                        report.location!.split(',')[1]);
+                                  } catch (e) {
+                                    // Handle parsing error
+                                    latitude = null;
+                                    longitude = null;
+                                  }
+                                }
                                 return IssueCard(
                                   category: report.category ?? "No Category",
                                   reporterName:
@@ -152,10 +170,10 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   location: report.location ?? "No Location",
                                   status: report.status ??
                                       "No Status", // Add status if available
-                                  latitude: double.parse(report.location!
-                                      .split(',')[0]), // Add latitude
-                                  longitude: double.parse(report.location!
-                                      .split(',')[1]), // Add longitude
+                                  latitude: latitude ??
+                                      0.0, // Provide a default value if parsing fails
+                                  longitude: longitude ??
+                                      0.0, // Provide a default value if parsing fails
                                 );
                               },
                             ),
@@ -168,79 +186,58 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
 
   // Filter Dialog
   void _showFilterDialog() {
-    String? selectedLocation;
-    DateTime? selectedStartDate;
-    DateTime? selectedEndDate;
+    String? selectedCategory;
+    String? selectedStatus;
+    List<String> categories = _reports
+        .map((report) => report.category ?? "No Category")
+        .toSet()
+        .toList();
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text("Filter Issues", style: GoogleFonts.poppins()),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Add filter options here
-              FilterChip(
-                label: Text("Resolved"),
-                onSelected: (bool value) {
-                  setState(() {
-                    _filteredReports = _reports
-                        .where((report) => report.status == "Resolved")
-                        .toList();
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              SizedBox(height: 8),
-              FilterChip(
-                label: Text("Pending"),
-                onSelected: (bool value) {
-                  setState(() {
-                    _filteredReports = _reports
-                        .where((report) => report.status == "Pending")
-                        .toList();
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-              TextField(
-                decoration: InputDecoration(labelText: "Location"),
-                onChanged: (value) {
-                  selectedLocation = value;
-                },
-              ),
-              SizedBox(height: 8),
-              TextField(
-                decoration: InputDecoration(labelText: "Start Date"),
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                  );
-                  if (pickedDate != null) {
-                    selectedStartDate = pickedDate;
-                  }
-                },
-              ),
-              SizedBox(height: 8),
-              TextField(
-                decoration: InputDecoration(labelText: "End Date"),
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2101),
-                  );
-                  if (pickedDate != null) {
-                    selectedEndDate = pickedDate;
-                  }
-                },
-              ),
-            ],
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Add filter options here
+                  DropdownButton<String>(
+                    value: selectedStatus,
+                    hint: Text("Select Status"),
+                    items: ["Solved", "Pending"].map((String status) {
+                      return DropdownMenuItem<String>(
+                        value: status,
+                        child: Text(status),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedStatus = newValue;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 8),
+                  DropdownButton<String>(
+                    value: selectedCategory,
+                    hint: Text("Select Category"),
+                    items: categories.map((String category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedCategory = newValue;
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -252,13 +249,19 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
             TextButton(
               onPressed: () {
                 _applyAdvancedFilters(
-                  location: selectedLocation,
-                  startDate: selectedStartDate,
-                  endDate: selectedEndDate,
+                  category: selectedCategory,
+                  status: selectedStatus?.toLowerCase(),
                 );
                 Navigator.pop(context);
               },
               child: Text("Apply", style: GoogleFonts.poppins()),
+            ),
+            TextButton(
+              onPressed: () {
+                _clearFilters();
+                Navigator.pop(context);
+              },
+              child: Text("Clear Filters", style: GoogleFonts.poppins()),
             ),
           ],
         );

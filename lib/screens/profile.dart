@@ -365,13 +365,6 @@ class Profile extends StatelessWidget {
                                 builder: (context) => ChangePasswordScreen()));
                       },
                     ),
-                    Divider(),
-                    buildUserActionRow(
-                      Icons.delete_outline,
-                      'Delete Account',
-                      Colors.redAccent,
-                      () => _deleteAccount(context),
-                    ),
                   ],
                 ),
               ),
