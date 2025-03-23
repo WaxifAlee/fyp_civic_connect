@@ -21,6 +21,7 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
   String _errorMessage = "";
   int _currentPage = 1;
   final int _reportsPerPage = 10;
+  bool _sortByPopularity = false;
 
   @override
   void initState() {
@@ -66,12 +67,30 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
         bool matchesStatus = status == null || report.status == status;
         return matchesCategory && matchesStatus;
       }).toList();
+
+      // Sort by upvotes if popularity sort is enabled
+      if (_sortByPopularity) {
+        _filteredReports
+            .sort((a, b) => (b.upvotes ?? 0).compareTo(a.upvotes ?? 0));
+      }
     });
   }
 
   void _clearFilters() {
     setState(() {
       _filteredReports = _reports;
+    });
+  }
+
+  void _toggleSortByPopularity(bool value) {
+    setState(() {
+      _sortByPopularity = value;
+      if (_sortByPopularity) {
+        _filteredReports
+            .sort((a, b) => (b.upvotes ?? 0).compareTo(a.upvotes ?? 0));
+      } else {
+        _fetchReports(); // Reset to default order
+      }
     });
   }
 
@@ -197,6 +216,7 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
   void _showFilterDialog() {
     String? selectedCategory;
     String? selectedStatus;
+    bool sortByPopularity = _sortByPopularity;
     List<String> categories = _reports
         .map((report) => report.category ?? "No Category")
         .toSet()
@@ -205,14 +225,25 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text("Filter Issues", style: GoogleFonts.poppins()),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Column(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text("Filter Issues", style: GoogleFonts.poppins()),
+              content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Add filter options here
+                  // Add sort by popularity switch
+                  SwitchListTile(
+                    title: Text("Sort by Popularity",
+                        style: GoogleFonts.poppins()),
+                    value: sortByPopularity,
+                    onChanged: (bool value) {
+                      setState(() {
+                        sortByPopularity = value;
+                      });
+                    },
+                  ),
+                  // ...existing dropdown buttons code...
                   DropdownButton<String>(
                     value: selectedStatus,
                     hint: Text("Select Status"),
@@ -245,34 +276,36 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                     },
                   ),
                 ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text("Cancel", style: GoogleFonts.poppins()),
-            ),
-            TextButton(
-              onPressed: () {
-                _applyAdvancedFilters(
-                  category: selectedCategory,
-                  status: selectedStatus?.toLowerCase(),
-                );
-                Navigator.pop(context);
-              },
-              child: Text("Apply", style: GoogleFonts.poppins()),
-            ),
-            TextButton(
-              onPressed: () {
-                _clearFilters();
-                Navigator.pop(context);
-              },
-              child: Text("Clear Filters", style: GoogleFonts.poppins()),
-            ),
-          ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text("Cancel", style: GoogleFonts.poppins()),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _toggleSortByPopularity(sortByPopularity);
+                    _applyAdvancedFilters(
+                      category: selectedCategory,
+                      status: selectedStatus?.toLowerCase(),
+                    );
+                    Navigator.pop(context);
+                  },
+                  child: Text("Apply", style: GoogleFonts.poppins()),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _clearFilters();
+                    _toggleSortByPopularity(false);
+                    Navigator.pop(context);
+                  },
+                  child: Text("Clear Filters", style: GoogleFonts.poppins()),
+                ),
+              ],
+            );
+          },
         );
       },
     );
