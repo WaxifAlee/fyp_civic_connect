@@ -10,6 +10,8 @@ class Report {
   final String? profilePicture;
   final DateTime? date;
   final String? id;
+  int? upvotes;
+  List<String>? upvotedBy; // List of user IDs who upvoted
 
   Report(
       {required this.category,
@@ -22,5 +24,43 @@ class Report {
       required this.profilePicture,
       required this.reporterName,
       required this.date, // Ensure reporterName is included
-      required this.id});
+      required this.id,
+      this.upvotedBy,
+      this.upvotes = 0});
+
+  factory Report.fromMap(Map<String, dynamic> map) {
+    return Report(
+      category: map['category'],
+      description: map['description'],
+      location: map['location'],
+      mediaRefrence: List<String>.from(map['mediaRefrence']),
+      reportedBy: map['reportedBy'],
+      title: map['title'],
+      status: map['status'],
+      profilePicture: map['profilePicture'],
+      reporterName: map['reporterName'],
+      date: DateTime.parse(map['date']),
+      id: map['id'],
+      upvotedBy: List<String>.from(map['upvotedBy'] ?? []),
+      upvotes: map['upvotes']?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'category': category,
+      'description': description,
+      'location': location,
+      'mediaRefrence': mediaRefrence,
+      'reportedBy': reportedBy,
+      'title': title,
+      'status': status,
+      'profilePicture': profilePicture,
+      'reporterName': reporterName,
+      'date': date?.toIso8601String(),
+      'id': id,
+      'upvotedBy': upvotedBy ?? [],
+      'upvotes': upvotes ?? 0,
+    };
+  }
 }

@@ -19,6 +19,8 @@ class ReportService {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
         return Report(
+            upvotes: data['upvotes'] ?? 0,
+            upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
             id: doc.id,
             category: data['category'],
             description: data['description'],
@@ -54,17 +56,19 @@ class ReportService {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
         return Report(
-            id: doc.id,
-            category: data['category'],
-            description: data['description'],
-            location: data['location'],
-            mediaRefrence: List<String>.from(data['images']),
-            reportedBy: data['reporterId'],
-            title: data['title'],
-            status: data['status'],
-            profilePicture: data['avatar'],
-            reporterName: data['reporterName'],
-            date: (data['timestamp'] as Timestamp).toDate().toLocal());
+          id: doc.id,
+          category: data['category'],
+          description: data['description'],
+          location: data['location'],
+          mediaRefrence: List<String>.from(data['images']),
+          reportedBy: data['reporterId'],
+          title: data['title'],
+          status: data['status'],
+          profilePicture: data['avatar'],
+          reporterName: data['reporterName'],
+          date: (data['timestamp'] as Timestamp).toDate().toLocal(),
+          upvotes: data['upvotes'],
+        );
       }).toList());
     } catch (e) {
       print('Error fetching reports by current user: $e');
@@ -87,5 +91,38 @@ class ReportService {
       print('Error deleting report: $e');
       throw e;
     }
+  }
+
+  Future<void> toggleUpvote(String reportId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final reportRef =
+        FirebaseFirestore.instance.collection('reports').doc(reportId);
+
+    return FirebaseFirestore.instance.runTransaction((transaction) async {
+      final reportDoc = await transaction.get(reportRef);
+
+      if (!reportDoc.exists) return;
+
+      List<String> upvotedBy =
+          List<String>.from(reportDoc.data()?['upvotedBy'] ?? []);
+      int currentUpvotes = reportDoc.data()?['upvotes'] ?? 0;
+
+      if (upvotedBy.contains(user.uid)) {
+        // Remove upvote
+        upvotedBy.remove(user.uid);
+        currentUpvotes--;
+      } else {
+        // Add upvote
+        upvotedBy.add(user.uid);
+        currentUpvotes++;
+      }
+
+      transaction.update(reportRef, {
+        'upvotedBy': upvotedBy,
+        'upvotes': currentUpvotes,
+      });
+    });
   }
 }
