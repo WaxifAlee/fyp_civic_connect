@@ -191,8 +191,10 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                                   },
                                   child: GestureDetector(
                                     child: IssueCard(
+                                      id: report.id ?? "No ID",
                                       category:
                                           report.category ?? "No Category",
+                                      upvotes: report.upvotes ?? 0,
                                       reporterName:
                                           report.reporterName ?? 'Unknown',
                                       date: report.date.toString(),
@@ -213,6 +215,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                                           .split(',')[0]), // Add latitude
                                       longitude: double.parse(report.location!
                                           .split(',')[1]), // Add longitude
+
+                                      onUpvote: () async {
+                                        await _reportService
+                                            .toggleUpvote(report.id!);
+                                        _fetchReports();
+                                      },
                                     ),
                                   ),
                                 );

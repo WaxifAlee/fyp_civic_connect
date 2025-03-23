@@ -4,6 +4,8 @@ import 'package:fyp_civic_connect/widgets/image_slider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart'; // For launching Google Maps
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:firebase_auth/firebase_auth.dart'; // For Firebase Authentication
+import 'package:fyp_civic_connect/themes/app_theme.dart'; // For AppTheme
 
 class IssueCard extends StatefulWidget {
   final String reporterName;
@@ -17,6 +19,10 @@ class IssueCard extends StatefulWidget {
   final double longitude;
   final String date;
   final String category;
+  final String id; // Add this
+  final int upvotes; // Add this
+  final List<String> upvotedBy; // Add this
+  final Function()? onUpvote; // Add this
 
   const IssueCard({
     Key? key,
@@ -31,6 +37,10 @@ class IssueCard extends StatefulWidget {
     required this.longitude,
     required this.date,
     required this.category,
+    required this.id,
+    this.upvotes = 0,
+    this.upvotedBy = const [],
+    this.onUpvote,
   }) : super(key: key);
 
   @override
@@ -99,6 +109,10 @@ class _IssueCardState extends State<IssueCard> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final hasUpvoted = currentUser != null &&
+        widget.upvotedBy.contains(currentUser.uid); // Fixed this line
+
     return GestureDetector(
       onTap: _toggleExpand,
       child: Card(
@@ -210,6 +224,36 @@ class _IssueCardState extends State<IssueCard> {
                           : Colors.orange,
                       size: 16,
                     ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              // Upvote Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Text("Upvote ", style: GoogleFonts.poppins(fontSize: 12)),
+                      IconButton(
+                        icon: Icon(
+                          hasUpvoted
+                              ? Icons.arrow_circle_up
+                              : Icons.arrow_circle_up_outlined,
+                          color:
+                              hasUpvoted ? AppTheme.themePurple : Colors.grey,
+                        ),
+                        onPressed: widget.onUpvote,
+                      ),
+                      Text(
+                        "${widget.upvotes}",
+                        style: TextStyle(
+                          color:
+                              hasUpvoted ? AppTheme.themePurple : Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

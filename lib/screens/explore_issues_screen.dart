@@ -156,6 +156,8 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                 }
                                 return IssueCard(
                                   category: report.category ?? "No Category",
+                                  upvotes: report.upvotes ?? 0,
+                                  id: report.id ?? "No ID",
                                   reporterName:
                                       report.reporterName ?? 'Unknown',
                                   date: report.date.toString(),
@@ -168,12 +170,19 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   description:
                                       report.description ?? "No Description",
                                   location: report.location ?? "No Location",
-                                  status: report.status ??
-                                      "No Status", // Add status if available
-                                  latitude: latitude ??
-                                      0.0, // Provide a default value if parsing fails
-                                  longitude: longitude ??
-                                      0.0, // Provide a default value if parsing fails
+                                  status: report.status ?? "No Status",
+                                  latitude: latitude ?? 0.0,
+                                  longitude: longitude ?? 0.0,
+                                  upvotedBy: report.upvotedBy ?? [],
+                                  onUpvote: () async {
+                                    await _reportService
+                                        .toggleUpvote(report.id!);
+                                    print(
+                                        "Upvoted report with ID: ${report.id}");
+                                    setState(() {
+                                      _fetchReports(); // Refresh the entire list after upvote
+                                    });
+                                  },
                                 );
                               },
                             ),

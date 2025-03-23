@@ -24,100 +24,100 @@ class Profile extends StatelessWidget {
     );
   }
 
-  Future<void> _deleteAccount(BuildContext context) async {
-    final user = FirebaseAuth.instance.currentUser;
+  // Future<void> _deleteAccount(BuildContext context) async {
+  //   final user = FirebaseAuth.instance.currentUser;
 
-    // Show confirmation dialog
-    bool confirmDelete = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Confirm Account Deletion"),
-          content: Text(
-              "Are you sure you want to delete your account? This action cannot be undone."),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Cancel
-              child: Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true), // Confirm
-              child: Text(
-                "Delete",
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  //   // Show confirmation dialog
+  //   bool confirmDelete = await showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text("Confirm Account Deletion"),
+  //         content: Text(
+  //             "Are you sure you want to delete your account? This action cannot be undone."),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () => Navigator.of(context).pop(false), // Cancel
+  //             child: Text("Cancel"),
+  //           ),
+  //           TextButton(
+  //             onPressed: () => Navigator.of(context).pop(true), // Confirm
+  //             child: Text(
+  //               "Delete",
+  //               style: TextStyle(color: Colors.red),
+  //             ),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
 
-    // If user cancels, stop here
-    if (!confirmDelete) return;
+  //   // If user cancels, stop here
+  //   if (!confirmDelete) return;
 
-    try {
-      // Delete user profile picture from Supabase storage
-      final displayPicture = globalCitizenUser!.displayPicture;
-      if (displayPicture != null) {
-        await Supabase.instance.client.storage
-            .from('profile-pictures')
-            .remove([displayPicture.split('/')[1]]);
-      }
+  //   try {
+  //     // Delete user profile picture from Supabase storage
+  //     final displayPicture = globalCitizenUser!.displayPicture;
+  //     if (displayPicture != null) {
+  //       await Supabase.instance.client.storage
+  //           .from('profile-pictures')
+  //           .remove([displayPicture.split('/')[1]]);
+  //     }
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user?.uid)
-          .delete();
-      await user?.delete();
+  //     await FirebaseFirestore.instance
+  //         .collection('users')
+  //         .doc(user?.uid)
+  //         .delete();
+  //     await user?.delete();
 
-      // Show success toast
-      Fluttertoast.showToast(
-        msg: "Account deleted successfully!",
-        toastLength: Toast.LENGTH_SHORT,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.green,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
+  //     // Show success toast
+  //     Fluttertoast.showToast(
+  //       msg: "Account deleted successfully!",
+  //       toastLength: Toast.LENGTH_SHORT,
+  //       gravity: ToastGravity.BOTTOM,
+  //       backgroundColor: Colors.green,
+  //       textColor: Colors.white,
+  //       fontSize: 16.0,
+  //     );
 
-      // Navigate user to login screen
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-        (route) => false,
-      );
-    } on FirebaseAuthException catch (e) {
-      // If there's an error (e.g., recent sign-in required)
-      if (e.code == 'requires-recent-login') {
-        Fluttertoast.showToast(
-          msg: "Please re-authenticate to delete your account.",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.orange,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
-      } else {
-        Fluttertoast.showToast(
-          msg: "Failed to delete account: ${e.message}",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
-      }
-    } catch (e) {
-      Fluttertoast.showToast(
-        msg: "An unexpected error occurred.",
-        toastLength: Toast.LENGTH_LONG,
-        gravity: ToastGravity.BOTTOM,
-        backgroundColor: Colors.red,
-        textColor: Colors.white,
-        fontSize: 16.0,
-      );
-    }
-  }
+  //     // Navigate user to login screen
+  //     Navigator.pushAndRemoveUntil(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => LoginScreen()),
+  //       (route) => false,
+  //     );
+  //   } on FirebaseAuthException catch (e) {
+  //     // If there's an error (e.g., recent sign-in required)
+  //     if (e.code == 'requires-recent-login') {
+  //       Fluttertoast.showToast(
+  //         msg: "Please re-authenticate to delete your account.",
+  //         toastLength: Toast.LENGTH_LONG,
+  //         gravity: ToastGravity.BOTTOM,
+  //         backgroundColor: Colors.orange,
+  //         textColor: Colors.white,
+  //         fontSize: 16.0,
+  //       );
+  //     } else {
+  //       Fluttertoast.showToast(
+  //         msg: "Failed to delete account: ${e.message}",
+  //         toastLength: Toast.LENGTH_LONG,
+  //         gravity: ToastGravity.BOTTOM,
+  //         backgroundColor: Colors.red,
+  //         textColor: Colors.white,
+  //         fontSize: 16.0,
+  //       );
+  //     }
+  //   } catch (e) {
+  //     Fluttertoast.showToast(
+  //       msg: "An unexpected error occurred.",
+  //       toastLength: Toast.LENGTH_LONG,
+  //       gravity: ToastGravity.BOTTOM,
+  //       backgroundColor: Colors.red,
+  //       textColor: Colors.white,
+  //       fontSize: 16.0,
+  //     );
+  //   }
+  // }
 
   Future<void> _confirmSignOut(BuildContext context) async {
     bool confirmSignOut = await showDialog(
@@ -156,7 +156,8 @@ class Profile extends StatelessWidget {
     return Scaffold(
       bottomNavigationBar: CustomNavBarCurved(),
       appBar: AppBar(
-        title: Text('Profile'),
+        backgroundColor: AppTheme.themeWhite,
+        title: Text("User's Profile"),
         leading: IconButton(
           onPressed: () {
             Navigator.pushReplacement(
@@ -368,7 +369,34 @@ class Profile extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 30),
+              // Add the contact text at the bottom
+              Center(
+                  child: Column(
+                children: [
+                  Text("For any queries or issues, please contact us at:",
+                      style: GoogleFonts.poppins(
+                          color: AppTheme.themeGray,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text("📧 waxif.alee1@gmail.com",
+                      style: GoogleFonts.firaCode(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w300,
+                          color: AppTheme.themeGray)),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  Text("📞 +92 309 5348658",
+                      style: GoogleFonts.firaCode(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w300,
+                          color: AppTheme.themeGray)),
+                ],
+              )),
             ],
           ),
         ),
