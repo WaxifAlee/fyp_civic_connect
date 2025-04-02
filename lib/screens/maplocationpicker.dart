@@ -14,6 +14,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   LatLng _initialPosition = const LatLng(33.6844, 72.9784);
   LatLng? _pickedLocation;
 
+  final List<LatLng> _fatehJangBoundary = [
+    LatLng(33.6013, 72.5843), // Top-left
+    LatLng(33.5765, 72.6912), // Top-right
+    LatLng(33.4857, 72.6903), // Bottom-right
+    LatLng(33.4701, 72.5750), // Bottom-left
+    LatLng(33.6013, 72.5843), // Closing the polygon
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -54,10 +62,44 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     }
   }
 
+  bool _isPointInsidePolygon(LatLng point, List<LatLng> polygon) {
+    int n = polygon.length;
+    bool inside = false;
+
+    for (int i = 0, j = n - 1; i < n; j = i++) {
+      double xi = polygon[i].latitude, yi = polygon[i].longitude;
+      double xj = polygon[j].latitude, yj = polygon[j].longitude;
+
+      bool intersect = ((yi > point.longitude) != (yj > point.longitude)) &&
+          (point.latitude <
+              (xj - xi) * (point.longitude - yi) / (yj - yi) + xi);
+
+      if (intersect) inside = !inside;
+    }
+
+    return inside;
+  }
+
   void _onMapTapped(LatLng position) {
-    setState(() {
-      _pickedLocation = position;
-    });
+    if (_isPointInsidePolygon(position, _fatehJangBoundary)) {
+      setState(() {
+        _pickedLocation = position;
+      });
+    } else {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Invalid Location"),
+          content: Text("You can only pick locations within Fateh Jang."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _goToCurrentLocation() async {
@@ -84,6 +126,15 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
             ),
             onMapCreated: (controller) => _mapController = controller,
             onTap: _onMapTapped,
+            polygons: {
+              Polygon(
+                polygonId: PolygonId("fatehJangBoundary"),
+                points: _fatehJangBoundary,
+                strokeWidth: 2,
+                strokeColor: Colors.red,
+                fillColor: Colors.red.withOpacity(0.2),
+              ),
+            },
             markers: _pickedLocation != null
                 ? {
                     Marker(
