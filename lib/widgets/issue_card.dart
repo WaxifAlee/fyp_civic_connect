@@ -25,7 +25,7 @@ class IssueCard extends StatefulWidget {
   final Function()? onUpvote; // Add this
 
   const IssueCard({
-    Key? key,
+    super.key,
     required this.reporterName,
     required this.profileImage,
     required this.issueImages,
@@ -41,7 +41,7 @@ class IssueCard extends StatefulWidget {
     this.upvotes = 0,
     this.upvotedBy = const [],
     this.onUpvote,
-  }) : super(key: key);
+  });
 
   @override
   _IssueCardState createState() => _IssueCardState();

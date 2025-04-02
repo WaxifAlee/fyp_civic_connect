@@ -6,7 +6,7 @@ import 'package:fyp_civic_connect/models/report.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MyReportsScreen extends StatefulWidget {
-  const MyReportsScreen({Key? key}) : super(key: key);
+  const MyReportsScreen({super.key});
 
   @override
   _MyReportsScreenState createState() => _MyReportsScreenState();

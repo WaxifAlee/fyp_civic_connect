@@ -1,7 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/models/report.dart';
 import 'package:fyp_civic_connect/screens/explore_issues_screen.dart';
 import 'package:fyp_civic_connect/screens/my_reports_screen.dart';
