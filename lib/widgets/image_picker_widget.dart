@@ -19,21 +19,19 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
   Future<void> _pickImages() async {
     try {
       final List<XFile> pickedFiles = await _picker.pickMultiImage();
-      if (pickedFiles != null) {
-        List<XFile> compressedFiles = [];
-        for (XFile file in pickedFiles) {
-          final compressedFile =
-              await ImageCompression.compressImage(File(file.path));
-          compressedFiles.add(XFile(compressedFile.path));
-        }
-        setState(() {
-          _selectedImages = compressedFiles.length > 3
-              ? compressedFiles.sublist(0, 3) // Limit to 3 images
-              : compressedFiles;
-        });
-        // Pass the selected images to the parent via the callback
-        widget.onImagesSelected(_selectedImages);
+      List<XFile> compressedFiles = [];
+      for (XFile file in pickedFiles) {
+        final compressedFile =
+            await ImageCompression.compressImage(File(file.path));
+        compressedFiles.add(XFile(compressedFile.path));
       }
+      setState(() {
+        _selectedImages = compressedFiles.length > 3
+            ? compressedFiles.sublist(0, 3) // Limit to 3 images
+            : compressedFiles;
+      });
+      // Pass the selected images to the parent via the callback
+      widget.onImagesSelected(_selectedImages);
     } catch (e) {
       print("Image picker error: $e");
     }

@@ -1,0 +1,20 @@
+{
+  "buildFiles": [
+    "/home/wasif/.flutter/packages/flutter_tools/gradle/src/main/groovy/CMakeLists.txt"
+  ],
+  "cleanCommandsComponents": [
+    [
+      "/home/wasif/Android/Sdk/cmake/3.22.1/bin/ninja",
+      "-C",
+      "/home/wasif/Desktop/fyp_civic_connect/android/app/.cxx/Debug/17k1l5i4/x86",
+      "clean"
+    ]
+  ],
+  "buildTargetsCommandComponents": [
+    "/home/wasif/Android/Sdk/cmake/3.22.1/bin/ninja",
+    "-C",
+    "/home/wasif/Desktop/fyp_civic_connect/android/app/.cxx/Debug/17k1l5i4/x86",
+    "{LIST_OF_TARGETS_TO_BUILD}"
+  ],
+  "libraries": {}
+}

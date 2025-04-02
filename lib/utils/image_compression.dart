@@ -10,7 +10,7 @@ class ImageCompression {
     final response = await http.post(
       Uri.parse('https://api.tinify.com/shrink'),
       headers: {
-        'Authorization': 'Basic ' + base64Encode(utf8.encode('api:$_apiKey')),
+        'Authorization': 'Basic ${base64Encode(utf8.encode('api:$_apiKey'))}',
         'Content-Type': 'application/octet-stream',
       },
       body: bytes,

@@ -1,7 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fyp_civic_connect/screens/change_password_screen.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
 import 'package:fyp_civic_connect/screens/login_screen.dart';
@@ -9,7 +7,6 @@ import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
 import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Profile extends StatelessWidget {
   const Profile({super.key});

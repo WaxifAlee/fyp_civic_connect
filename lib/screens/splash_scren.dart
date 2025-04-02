@@ -1,7 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fyp_civic_connect/main.dart';
 import 'package:fyp_civic_connect/screens/dashboard.dart';
-import 'package:fyp_civic_connect/screens/login_screen.dart';
+// import 'package:fyp_civic_connect/screens/login_screen.dart';
 import 'package:fyp_civic_connect/screens/verification_waiting_screen.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
@@ -99,7 +100,7 @@ class _SplashScreenState extends State<SplashScreen> {
         // Navigate to LoginScreen if the user is not authenticated
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
+          MaterialPageRoute(builder: (context) => WelcomeScreen()),
         );
       }
     } catch (e) {
