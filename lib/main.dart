@@ -1,6 +1,4 @@
 import 'package:fyp_civic_connect/screens/login_screen.dart';
-import 'package:fyp_civic_connect/screens/notifications.dart';
-
 import 'package:fyp_civic_connect/screens/dashboard.dart';
 
 import 'package:fyp_civic_connect/screens/forgot_password.dart';
@@ -35,10 +33,8 @@ class CivicConnectApp extends StatelessWidget {
       routes: {
         '/login': (context) => LoginScreen(),
         '/home': (context) => WelcomeScreen(),
-        '/signUp': (context) => SignupScreen(),
-        '/reset_password': (context) => ForgotScreen(),
+        '/signUp': (context) => SignupScreen(),        '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
-        '/notifications': (context) => NotificationScreen(),
         '/dashboard': (context) => DashboardPage(),
         '/profile': (context) => Profile(),
         '/welcome': (context) => WelcomeScreen()

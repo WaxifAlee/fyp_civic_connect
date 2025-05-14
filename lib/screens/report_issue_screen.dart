@@ -202,10 +202,11 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                       value: selectedValue,
                       hintText: "Choose an Option",
                       items: [
-                        "Garbage Disposal",
-                        "Civil Infrastructure",
-                        "Water Supply",
-                        "Illegal Property Hold"
+                        "Municipal Corportaion",
+                        "Police Department",
+                        "Fire & Emergency Services",
+                        "Electricity & Gas Department",
+                        "Public Works Department (PWD)",
                       ],
                       onChanged: (value) {
                         setState(() {

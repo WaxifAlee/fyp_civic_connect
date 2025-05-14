@@ -82,18 +82,7 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Text("Dashboard",
               style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w500, fontSize: 20)),
-        ),
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: IconButton(
-              icon: Icon(Icons.notifications_rounded, color: Colors.black),
-              onPressed: () {
-                Navigator.pushNamed(context, '/notifications');
-              },
-            ),
-          )
-        ],
+        ),        actions: [],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -293,19 +282,20 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildRecentReport(String title, String status, String date) {
-    final Color? statusColor;
-    final Icon? statusIcon;
-    final String? description;
+    // Default values
+    Color statusColor = AppTheme.themeGray;
+    Icon statusIcon = Icon(Icons.help_outline, size: 32, color: Colors.black);
+    String description = "Unknown status";
 
-    if (status == "declined") {
+    if (status == "rejected") {
       statusColor = AppTheme.themePink;
       statusIcon = Icon(Icons.cancel_rounded, size: 32, color: Colors.black);
-      description = "This report was declined by the admin.";
+      description = "This report was rejected by the admin.";
     } else if (status == "pending") {
       statusColor = AppTheme.honeyYellow;
       statusIcon = Icon(Icons.feedback_outlined, color: Colors.black, size: 32);
       description = "This report is waiting for admin's response.";
-    } else {
+    } else if (status == "solved") {
       statusColor = AppTheme.mintGreen;
       statusIcon = Icon(Icons.check_circle_outline_rounded,
           color: Colors.black, size: 32);

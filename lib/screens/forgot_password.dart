@@ -33,10 +33,10 @@ class _LoginScreenState extends State<ForgotScreen> {
         content: Text("Password reset email sent"),
         duration: Duration(seconds: 3),
       ));
-      Navigator.of(context).pushNamed("/login");
+      Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Failed to send password reset email"),
+        content: Text("Failed to send reset email. Please try again."),
         duration: Duration(seconds: 3),
       ));
     }
@@ -49,8 +49,12 @@ class _LoginScreenState extends State<ForgotScreen> {
 
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: AppTheme.themeWhite,
-          leading: CustomBackButton(backTo: "/login")),
+        backgroundColor: AppTheme.themeWhite,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+        ),
+      ),
       backgroundColor: AppTheme.themeWhite,
       body: Padding(
         padding: EdgeInsets.only(

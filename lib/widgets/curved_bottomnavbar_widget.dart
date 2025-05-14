@@ -24,17 +24,18 @@ class CustomNavBarCurvedState extends State<CustomNavBarCurved> {
     // Navigate to different pages based on the tapped index
     switch (index) {
       case 0:
-        Navigator.pushReplacement(
+        Navigator.pushNamedAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => DashboardPage()),
+          '/dashboard',
+          (route) => false,
         );
         break;
       case 1:
-        Navigator.pushReplacement(
+        Navigator.pushNamedAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => Profile()),
+          '/profile',
+          (route) => false,
         );
-
         break;
     }
   }

@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 
 class CustomBackButton extends StatelessWidget {
   final String backTo;
-  const CustomBackButton({super.key, required this.backTo});
+  final bool replaceRoute;
+
+  const CustomBackButton(
+      {super.key, required this.backTo, this.replaceRoute = true});
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +15,11 @@ class CustomBackButton extends StatelessWidget {
       icon: const Icon(Icons.arrow_back,
           color: AppTheme.themeGray, size: 32, weight: 600),
       onPressed: () {
-        Navigator.pushNamed(context, backTo);
+        if (replaceRoute) {
+          Navigator.pushReplacementNamed(context, backTo);
+        } else {
+          Navigator.pushNamed(context, backTo);
+        }
       },
     );
   }

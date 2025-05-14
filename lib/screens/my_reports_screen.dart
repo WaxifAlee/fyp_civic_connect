@@ -262,10 +262,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                   DropdownButton<String>(
                     value: selectedStatus,
                     hint: Text("Select Status"),
-                    items: ["Solved", "Pending"].map((String status) {
+                    items:
+                        ["solved", "pending", "rejected"].map((String status) {
                       return DropdownMenuItem<String>(
                         value: status,
-                        child: Text(status),
+                        child: Text(status[0].toUpperCase() +
+                            status.substring(1)), // Capitalize for display
                       );
                     }).toList(),
                     onChanged: (String? newValue) {

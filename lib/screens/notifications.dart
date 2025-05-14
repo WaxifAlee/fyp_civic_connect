@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fyp_civic_connect/widgets/curved_bottomnavbar_widget.dart'; // Import your custom navbar
+import 'package:fyp_civic_connect/screens/dashboard.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});
@@ -14,7 +15,8 @@ class NotificationScreen extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
-            Navigator.pop(context); // Navigate back to the previous screen
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (context) => DashboardPage()));
           },
         ),
         title: Text(
