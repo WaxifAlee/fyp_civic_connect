@@ -15,8 +15,11 @@ class ReportService {
     try {
       QuerySnapshot querySnapshot =
           await _firestore.collection('reports').get();
+      print('Found ${querySnapshot.docs.length} reports'); // Debug info
       return await Future.wait(querySnapshot.docs.map((doc) async {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        final reportCode = data['reportCode'];
+        print('Report ${doc.id} has code: $reportCode'); // Debug info
         return Report(
             upvotes: data['upvotes'] ?? 0,
             upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
@@ -30,7 +33,7 @@ class ReportService {
             status: data['status'],
             profilePicture: data['avatar'],
             reporterName: data['reporterName'],
-            reportCode: data['reportCode'],
+            reportCode: reportCode,
             date: (data['timestamp'] as Timestamp).toDate().toLocal());
       }).toList());
     } catch (e) {
@@ -54,7 +57,6 @@ class ReportService {
           .get();
       return await Future.wait(querySnapshot.docs.map((doc) async {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
         return Report(
           id: doc.id,
           category: data['category'],
@@ -68,6 +70,8 @@ class ReportService {
           reporterName: data['reporterName'],
           date: (data['timestamp'] as Timestamp).toDate().toLocal(),
           upvotes: data['upvotes'],
+          reportCode: data['reportCode'],
+          upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
         );
       }).toList());
     } catch (e) {
