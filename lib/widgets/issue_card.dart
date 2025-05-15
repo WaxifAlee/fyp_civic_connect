@@ -112,7 +112,8 @@ class _IssueCardState extends State<IssueCard> {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
-    final hasUpvoted = currentUser != null && widget.upvotedBy.contains(currentUser.uid);
+    final hasUpvoted =
+        currentUser != null && widget.upvotedBy.contains(currentUser.uid);
 
     return GestureDetector(
       onTap: _toggleExpand,
@@ -213,8 +214,9 @@ class _IssueCardState extends State<IssueCard> {
                       color: Colors.grey[600],
                     ),
                     maxLines: _isExpanded ? null : 2,
-                    overflow:
-                        _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                    overflow: _isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 8),
                   // Location & Status
@@ -225,7 +227,8 @@ class _IssueCardState extends State<IssueCard> {
                         onTap: _openMap,
                         child: Row(
                           children: [
-                            Icon(Icons.location_on, size: 16, color: Colors.red),
+                            Icon(Icons.location_on,
+                                size: 16, color: Colors.red),
                             SizedBox(width: 4),
                             Text(
                               'Open in Maps',
@@ -244,7 +247,8 @@ class _IssueCardState extends State<IssueCard> {
                       ),
                       // Status Badge
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: widget.status == "solved"
                               ? Colors.green[200]
@@ -270,22 +274,25 @@ class _IssueCardState extends State<IssueCard> {
                     children: [
                       Row(
                         children: [
-                          Text("Upvote ", style: GoogleFonts.poppins(fontSize: 12)),
+                          Text("Upvote ",
+                              style: GoogleFonts.poppins(fontSize: 12)),
                           IconButton(
                             icon: Icon(
                               hasUpvoted
                                   ? Icons.arrow_circle_up
                                   : Icons.arrow_circle_up_outlined,
-                              color:
-                                  hasUpvoted ? AppTheme.themePurple : Colors.grey,
+                              color: hasUpvoted
+                                  ? AppTheme.themePurple
+                                  : Colors.grey,
                             ),
                             onPressed: widget.onUpvote,
                           ),
                           Text(
                             "${widget.upvotes}",
                             style: TextStyle(
-                              color:
-                                  hasUpvoted ? AppTheme.themePurple : Colors.grey,
+                              color: hasUpvoted
+                                  ? AppTheme.themePurple
+                                  : Colors.grey,
                               fontWeight: FontWeight.bold,
                             ),
                           ),

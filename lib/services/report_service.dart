@@ -10,31 +10,56 @@ class ReportService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Fetch all reports from Firestore
-  Future<List<Report>> fetchAllReports() async {
+  // Fetch all reports from Firestore with filter options
+  Future<List<Report>> fetchAllReports({
+    String? category,
+    String? status,
+    bool sortByPopularity = false,
+  }) async {
     try {
-      QuerySnapshot querySnapshot =
-          await _firestore.collection('reports').get();
+      // Start with the base query
+      Query query = _firestore.collection('reports');
+
+      // Apply filters if provided
+      if (category != null && category.isNotEmpty) {
+        query = query.where('category', isEqualTo: category);
+      }
+      if (status != null && status.isNotEmpty) {
+        query = query.where('status', isEqualTo: status);
+      }
+
+      // If sorting by popularity, order by upvotes
+      if (sortByPopularity) {
+        query = query.orderBy('upvotes', descending: true);
+      } else {
+        // Default sort by timestamp
+        query = query.orderBy('timestamp', descending: true);
+      }
+
+      QuerySnapshot querySnapshot = await query.get();
       print('Found ${querySnapshot.docs.length} reports'); // Debug info
+
       return await Future.wait(querySnapshot.docs.map((doc) async {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         final reportCode = data['reportCode'];
         print('Report ${doc.id} has code: $reportCode'); // Debug info
+
         return Report(
-            upvotes: data['upvotes'] ?? 0,
-            upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
-            id: doc.id,
-            category: data['category'],
-            description: data['description'],
-            location: data['location'],
-            mediaRefrence: List<String>.from(data['images']),
-            reportedBy: data['reporterId'],
-            title: data['title'],
-            status: data['status'],
-            profilePicture: data['avatar'],
-            reporterName: data['reporterName'],
-            reportCode: reportCode,
-            date: (data['timestamp'] as Timestamp).toDate().toLocal());
+          upvotes: data['upvotes'] ?? 0,
+          upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
+          id: doc.id,
+          category: data['category'],
+          description: data['description'],
+          location: data['location'],
+          mediaRefrence: List<String>.from(data['images']),
+          reportedBy: data['reporterId'],
+          title: data['title'],
+          status: data['status'],
+          profilePicture: data['avatar'],
+          reporterName: data['reporterName'],
+          reportCode: reportCode,
+          date: (data['timestamp'] as Timestamp).toDate().toLocal(),
+        );
       }).toList());
     } catch (e) {
       print('Error fetching reports: $e');

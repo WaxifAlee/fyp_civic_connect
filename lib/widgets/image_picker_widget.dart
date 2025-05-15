@@ -56,16 +56,19 @@ class _ImagePickerWidgetState extends State<ImagePickerWidget> {
                 Icon(Icons.image, size: 100, color: Colors.grey[600]),
                 SizedBox(height: 10),
                 Text(
-                  "(Upto 3 images in jpg/png format)",
-                  style: TextStyle(color: Colors.grey[600]),
+                  "*Required (1-3 images in jpg/png format)",
+                  style: TextStyle(
+                      color: Colors.red[400], fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: _pickImages,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[400],
+                    backgroundColor: Colors.blue[600],
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   ),
-                  child: Text("Select", style: TextStyle(color: Colors.black)),
+                  child: Text("Select Images",
+                      style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

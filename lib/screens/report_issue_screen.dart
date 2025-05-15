@@ -53,6 +53,14 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   }
 
   Future<void> _submitReport() async {
+    // Check for minimum image requirement
+    if (_images.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('At least one image is required')),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate() && selectedValue != null) {
       setState(() {
         isSubmitting = true;
