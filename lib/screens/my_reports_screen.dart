@@ -198,11 +198,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                                       reporterName:
                                           report.reporterName ?? 'Unknown',
                                       date: report.date.toString(),
+                                      reportCode: report.reportCode,
                                       profileImage: report.profilePicture !=
                                                   null &&
                                               report.profilePicture != ''
                                           ? 'https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/${report.profilePicture}'
-                                          : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128", // Add profile image if available
+                                          : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128",
                                       issueImages: report.mediaRefrence,
                                       title: report.title ?? "No Title",
                                       description: report.description ??

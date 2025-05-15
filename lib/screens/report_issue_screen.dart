@@ -14,6 +14,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
 import '../utils/image_compression.dart';
+import 'package:fyp_civic_connect/utils/report_code_generator.dart';
 
 class ReportIssueScreen extends StatefulWidget {
   const ReportIssueScreen({super.key});
@@ -85,8 +86,12 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           imageUrls.add(publicUrl);
         }
 
+        // Generate report code
+        final reportCode =
+            await ReportCodeGenerator.generateReportCode(selectedValue!);
+
         // Save report data to Firestore
-        FirebaseFirestore.instance.collection('reports').add({
+        await FirebaseFirestore.instance.collection('reports').add({
           'title': titleController.text,
           'description': descriptionController.text,
           'category': selectedValue,
@@ -97,6 +102,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
           'status': 'pending',
           'avatar': globalCitizenUser!.displayPicture,
           'reporterName': globalCitizenUser!.fullName,
+          'reportCode': reportCode, // Add the report code
+          'upvotes': 0,
+          'upvotedBy': [],
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

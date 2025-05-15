@@ -10,7 +10,7 @@ class Report {
   final String? profilePicture;
   final DateTime? date;
   final String? id;
-  final String? reportNumber; // New field for custom report ID (e.g., MC00001)
+  final String? reportCode; // New field
   int? upvotes;
   List<String>? upvotedBy; // List of user IDs who upvoted
 
@@ -26,7 +26,7 @@ class Report {
       required this.reporterName,
       required this.date, // Ensure reporterName is included
       required this.id,
-      this.reportNumber, // Add to constructor
+      this.reportCode, // New optional parameter
       this.upvotedBy,
       this.upvotes = 0});
 
@@ -43,7 +43,7 @@ class Report {
       reporterName: map['reporterName'],
       date: DateTime.parse(map['date']),
       id: map['id'],
-      reportNumber: map['reportNumber'], // Add to fromMap
+      reportCode: map['reportCode'], // Add this line
       upvotedBy: List<String>.from(map['upvotedBy'] ?? []),
       upvotes: map['upvotes']?.toInt() ?? 0,
     );
@@ -62,7 +62,7 @@ class Report {
       'reporterName': reporterName,
       'date': date?.toIso8601String(),
       'id': id,
-      'reportNumber': reportNumber, // Add to toMap
+      'reportCode': reportCode, // Add this line
       'upvotedBy': upvotedBy ?? [],
       'upvotes': upvotes ?? 0,
     };

@@ -19,10 +19,11 @@ class IssueCard extends StatefulWidget {
   final double longitude;
   final String date;
   final String category;
-  final String id; // Add this
-  final int upvotes; // Add this
-  final List<String> upvotedBy; // Add this
-  final Function()? onUpvote; // Add this
+  final String id;
+  final String? reportCode; // Add this line
+  final int upvotes;
+  final List<String> upvotedBy;
+  final Function()? onUpvote;
 
   const IssueCard({
     super.key,
@@ -38,6 +39,7 @@ class IssueCard extends StatefulWidget {
     required this.date,
     required this.category,
     required this.id,
+    this.reportCode, // Add this line
     this.upvotes = 0,
     this.upvotedBy = const [],
     this.onUpvote,
@@ -145,24 +147,7 @@ class _IssueCardState extends State<IssueCard> {
                       Text(_getTimeAgo(widget.date),
                           style: GoogleFonts.poppins(fontSize: 10)),
                     ],
-                  ),
-                  Spacer(),
-                  // Report ID
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.themePurple.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      widget.id,
-                      style: TextStyle(
-                        color: AppTheme.themePurple,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  )
                 ],
               ),
               SizedBox(height: 12),
@@ -274,6 +259,24 @@ class _IssueCardState extends State<IssueCard> {
                   ),
                 ],
               ),
+              // Add report code display
+              if (widget.reportCode != null) // Add report code badge
+                Container(
+                  margin: EdgeInsets.only(top: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.themePurple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    widget.reportCode!,
+                    style: GoogleFonts.poppins(
+                      color: AppTheme.themePurple,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

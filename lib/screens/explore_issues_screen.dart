@@ -94,17 +94,6 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
     });
   }
 
-  Future<void> _handleUpvote(Report report) async {
-    try {
-      await _reportService.toggleUpvote(report.id!);
-      _fetchReports(); // Refresh the reports list
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update upvote. Please try again.')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -169,42 +158,49 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   _currentPage++;
                                 }
                                 final report = _filteredReports[index];
-                                double latitude = 0.0;
-                                double longitude = 0.0;
-
+                                double? latitude;
+                                double? longitude;
                                 if (report.location != null &&
                                     report.location!.contains(',')) {
                                   try {
-                                    var parts = report.location!.split(',');
-                                    latitude = double.parse(parts[0].trim());
-                                    longitude = double.parse(parts[1].trim());
+                                    latitude = double.parse(
+                                        report.location!.split(',')[0]);
+                                    longitude = double.parse(
+                                        report.location!.split(',')[1]);
                                   } catch (e) {
                                     // Handle parsing error
-                                    print('Error parsing location: $e');
+                                    latitude = null;
+                                    longitude = null;
                                   }
                                 }
-
                                 return IssueCard(
-                                  id: report.reportNumber ??
-                                      report.id ??
-                                      'No ID',
+                                  id: report.id ?? "No ID",
                                   reporterName:
                                       report.reporterName ?? 'Unknown',
-                                  profileImage: report.profilePicture ?? '',
+                                  date: report.date.toString(),
+                                  reportCode: report.reportCode,
+                                  profileImage: report.profilePicture != null &&
+                                          report.profilePicture != ''
+                                      ? 'https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/${report.profilePicture}'
+                                      : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128",
                                   issueImages: report.mediaRefrence,
-                                  title: report.title ?? 'No Title',
-                                  description:
-                                      report.description ?? 'No Description',
-                                  location: report.location ?? 'No Location',
-                                  status: report.status ?? 'pending',
-                                  latitude: latitude,
-                                  longitude: longitude,
-                                  date: report.date?.toIso8601String() ??
-                                      DateTime.now().toIso8601String(),
-                                  category: report.category ?? 'No Category',
+                                  title: report.title ?? "No Title",
+                                  category: report.category ?? "No Category",
                                   upvotes: report.upvotes ?? 0,
+                                  description:
+                                      report.description ?? "No Description",
+                                  location: report.location ?? "No Location",
+                                  status: report.status ?? "No Status",
+                                  latitude: latitude ?? 0.0,
+                                  longitude: longitude ?? 0.0,
                                   upvotedBy: report.upvotedBy ?? [],
-                                  onUpvote: () => _handleUpvote(report),
+                                  onUpvote: () async {
+                                    await _reportService
+                                        .toggleUpvote(report.id!);
+                                    setState(() {
+                                      _fetchReports();
+                                    });
+                                  },
                                 );
                               },
                             ),
