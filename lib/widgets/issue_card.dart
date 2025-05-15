@@ -145,7 +145,24 @@ class _IssueCardState extends State<IssueCard> {
                       Text(_getTimeAgo(widget.date),
                           style: GoogleFonts.poppins(fontSize: 10)),
                     ],
-                  )
+                  ),
+                  Spacer(),
+                  // Report ID
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.themePurple.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      widget.id,
+                      style: TextStyle(
+                        color: AppTheme.themePurple,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
               ),
               SizedBox(height: 12),

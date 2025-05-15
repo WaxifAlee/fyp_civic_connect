@@ -94,6 +94,17 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
     });
   }
 
+  Future<void> _handleUpvote(Report report) async {
+    try {
+      await _reportService.toggleUpvote(report.id!);
+      _fetchReports(); // Refresh the reports list
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update upvote. Please try again.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,50 +169,42 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   _currentPage++;
                                 }
                                 final report = _filteredReports[index];
-                                double? latitude;
-                                double? longitude;
+                                double latitude = 0.0;
+                                double longitude = 0.0;
+
                                 if (report.location != null &&
                                     report.location!.contains(',')) {
                                   try {
-                                    latitude = double.parse(
-                                        report.location!.split(',')[0]);
-                                    longitude = double.parse(
-                                        report.location!.split(',')[1]);
+                                    var parts = report.location!.split(',');
+                                    latitude = double.parse(parts[0].trim());
+                                    longitude = double.parse(parts[1].trim());
                                   } catch (e) {
                                     // Handle parsing error
-                                    latitude = null;
-                                    longitude = null;
+                                    print('Error parsing location: $e');
                                   }
                                 }
+
                                 return IssueCard(
-                                  category: report.category ?? "No Category",
-                                  upvotes: report.upvotes ?? 0,
-                                  id: report.id ?? "No ID",
+                                  id: report.reportNumber ??
+                                      report.id ??
+                                      'No ID',
                                   reporterName:
                                       report.reporterName ?? 'Unknown',
-                                  date: report.date.toString(),
-                                  profileImage: report.profilePicture != null &&
-                                          report.profilePicture != ''
-                                      ? 'https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/${report.profilePicture}'
-                                      : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128", // Add profile image if available
+                                  profileImage: report.profilePicture ?? '',
                                   issueImages: report.mediaRefrence,
-                                  title: report.title ?? "No Title",
+                                  title: report.title ?? 'No Title',
                                   description:
-                                      report.description ?? "No Description",
-                                  location: report.location ?? "No Location",
-                                  status: report.status ?? "No Status",
-                                  latitude: latitude ?? 0.0,
-                                  longitude: longitude ?? 0.0,
+                                      report.description ?? 'No Description',
+                                  location: report.location ?? 'No Location',
+                                  status: report.status ?? 'pending',
+                                  latitude: latitude,
+                                  longitude: longitude,
+                                  date: report.date?.toIso8601String() ??
+                                      DateTime.now().toIso8601String(),
+                                  category: report.category ?? 'No Category',
+                                  upvotes: report.upvotes ?? 0,
                                   upvotedBy: report.upvotedBy ?? [],
-                                  onUpvote: () async {
-                                    await _reportService
-                                        .toggleUpvote(report.id!);
-                                    print(
-                                        "Upvoted report with ID: ${report.id}");
-                                    setState(() {
-                                      _fetchReports(); // Refresh the entire list after upvote
-                                    });
-                                  },
+                                  onUpvote: () => _handleUpvote(report),
                                 );
                               },
                             ),

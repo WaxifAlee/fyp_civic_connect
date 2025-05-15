@@ -38,11 +38,17 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       List<Report> reports = await _reportService.fetchReportsByCurrentUser();
       setState(() {
-        _solvedCount =
-            reports.where((report) => report.status == "solved").length;
+        _solvedCount = reports
+            .where((report) =>
+                report.status == "solved" ||
+                report.status?.toLowerCase() == "done")
+            .length;
         _reportedCount = reports.length;
-        _pendingCount =
-            reports.where((report) => report.status == "pending").length;
+        _pendingCount = reports
+            .where((report) =>
+                report.status == "pending" ||
+                report.status?.toLowerCase() == "in progress")
+            .length;
         _recentReports =
             reports.take(3).toList(); // Get the 3 most recent reports
       });
@@ -82,7 +88,8 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Text("Dashboard",
               style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w500, fontSize: 20)),
-        ),        actions: [],
+        ),
+        actions: [],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -291,7 +298,7 @@ class _DashboardPageState extends State<DashboardPage> {
       statusColor = AppTheme.themePink;
       statusIcon = Icon(Icons.cancel_rounded, size: 32, color: Colors.black);
       description = "This report was rejected by the admin.";
-    } else if (status == "pending") {
+    } else if (status == "pending" || status.toLowerCase() == "in progress") {
       statusColor = AppTheme.honeyYellow;
       statusIcon = Icon(Icons.feedback_outlined, color: Colors.black, size: 32);
       description = "This report is waiting for admin's response.";
