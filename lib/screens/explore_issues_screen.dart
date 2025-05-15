@@ -21,7 +21,6 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
   String _errorMessage = "";
   int _currentPage = 1;
   final int _reportsPerPage = 10;
-  bool _sortByPopularity = false;
 
   @override
   void initState() {
@@ -38,7 +37,7 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
       List<Report> reports = await _reportService.fetchAllReports();
       setState(() {
         _reports = reports;
-        _filteredReports = reports; // Initially, show all reports
+        _filteredReports = reports;
       });
     } catch (error) {
       setState(() {
@@ -63,35 +62,41 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
   void _applyAdvancedFilters({String? category, String? status}) {
     setState(() {
       _filteredReports = _reports.where((report) {
-        bool matchesCategory = category == null || report.category == category;
-        bool matchesStatus = status == null || report.status == status;
+        bool matchesCategory = category == null ||
+            (report.category?.toLowerCase() == category.toLowerCase());
+        bool matchesStatus = status == null ||
+            (report.status?.toLowerCase() == status.toLowerCase());
+
+        print('Filtering report: ${report.title}');
+        print(
+            'Category match: $matchesCategory (filter: $category, report: ${report.category})');
+        print(
+            'Status match: $matchesStatus (filter: $status, report: ${report.status})');
+
         return matchesCategory && matchesStatus;
       }).toList();
-
-      // Sort by upvotes if popularity sort is enabled
-      if (_sortByPopularity) {
-        _filteredReports
-            .sort((a, b) => (b.upvotes ?? 0).compareTo(a.upvotes ?? 0));
-      }
     });
   }
 
-  void _clearFilters() {
-    setState(() {
-      _filteredReports = _reports;
-    });
-  }
-
-  void _toggleSortByPopularity(bool value) {
-    setState(() {
-      _sortByPopularity = value;
-      if (_sortByPopularity) {
-        _filteredReports
-            .sort((a, b) => (b.upvotes ?? 0).compareTo(a.upvotes ?? 0));
-      } else {
-        _fetchReports(); // Reset to default order
-      }
-    });
+  Future<void> _deleteReport(String reportId, List<String> imagePaths) async {
+    try {
+      await _reportService.deleteReport(reportId, imagePaths);
+      setState(() {
+        _reports.removeWhere((report) => report.id == reportId);
+        _filteredReports.removeWhere((report) => report.id == reportId);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report deleted successfully!'),
+        ),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete report. Please try again.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -158,50 +163,43 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
                                   _currentPage++;
                                 }
                                 final report = _filteredReports[index];
-                                double? latitude;
-                                double? longitude;
-                                if (report.location != null &&
-                                    report.location!.contains(',')) {
-                                  try {
-                                    latitude = double.parse(
-                                        report.location!.split(',')[0]);
-                                    longitude = double.parse(
-                                        report.location!.split(',')[1]);
-                                  } catch (e) {
-                                    // Handle parsing error
-                                    latitude = null;
-                                    longitude = null;
-                                  }
-                                }
-                                return IssueCard(
-                                  category: report.category ?? "No Category",
-                                  upvotes: report.upvotes ?? 0,
-                                  id: report.id ?? "No ID",
-                                  reporterName:
-                                      report.reporterName ?? 'Unknown',
-                                  date: report.date.toString(),
-                                  profileImage: report.profilePicture != null &&
-                                          report.profilePicture != ''
-                                      ? 'https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/${report.profilePicture}'
-                                      : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128", // Add profile image if available
-                                  issueImages: report.mediaRefrence,
-                                  title: report.title ?? "No Title",
-                                  description:
-                                      report.description ?? "No Description",
-                                  location: report.location ?? "No Location",
-                                  status: report.status ?? "No Status",
-                                  latitude: latitude ?? 0.0,
-                                  longitude: longitude ?? 0.0,
-                                  upvotedBy: report.upvotedBy ?? [],
-                                  onUpvote: () async {
-                                    await _reportService
-                                        .toggleUpvote(report.id!);
-                                    print(
-                                        "Upvoted report with ID: ${report.id}");
-                                    setState(() {
-                                      _fetchReports(); // Refresh the entire list after upvote
-                                    });
-                                  },
+                                return Container(
+                                  key: Key(report.id!),
+                                  child: GestureDetector(
+                                    child: IssueCard(
+                                      id: report.id ?? "No ID",
+                                      category:
+                                          report.category ?? "No Category",
+                                      upvotes: report.upvotes ?? 0,
+                                      reporterName:
+                                          report.reporterName ?? 'Unknown',
+                                      date: report.date.toString(),
+                                      reportCode: report.reportCode,
+                                      profileImage: report.profilePicture !=
+                                                  null &&
+                                              report.profilePicture != ''
+                                          ? 'https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/${report.profilePicture}'
+                                          : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128",
+                                      issueImages: report.mediaRefrence,
+                                      title: report.title ?? "No Title",
+                                      description: report.description ??
+                                          "No Description",
+                                      location:
+                                          report.location ?? "No Location",
+                                      status: report.status ??
+                                          "No Status", // Add status if available
+                                      latitude: double.parse(report.location!
+                                          .split(',')[0]), // Add latitude
+                                      longitude: double.parse(report.location!
+                                          .split(',')[1]), // Add longitude
+
+                                      onUpvote: () async {
+                                        await _reportService
+                                            .toggleUpvote(report.id!);
+                                        _fetchReports();
+                                      },
+                                    ),
+                                  ),
                                 );
                               },
                             ),
@@ -213,95 +211,123 @@ class _ExploreIssuesScreenState extends State<ExploreIssuesScreen> {
   }
 
   // Filter Dialog
+  void _clearFilters() {
+    setState(() {
+      _filteredReports = _reports;
+    });
+  }
+
   void _showFilterDialog() {
     String? selectedCategory;
     String? selectedStatus;
-    bool sortByPopularity = _sortByPopularity;
-    List<String> categories = _reports
-        .map((report) => report.category ?? "No Category")
-        .toSet()
-        .toList();
+
+    // Define all available categories
+    List<String> predefinedCategories = [
+      'Municipal Corportaion',
+      'Police Department',
+      'Fire & Emergency Services',
+      'Electricity & Gas Department',
+      'Public Works Department (PWD)',
+    ];
+
+    // Combine predefined categories with any additional ones from reports
+    List<String> categories = {
+      ...predefinedCategories,
+      ..._reports.map((report) => report.category ?? "No Category")
+    }.toList()
+      ..removeWhere(
+          (category) => category == "No Category") // Remove empty categories
+      ..sort();
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext dialogContext) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (BuildContext context, StateSetter dialogSetState) {
             return AlertDialog(
               title: Text("Filter Issues", style: GoogleFonts.poppins()),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Add sort by popularity switch
-                  SwitchListTile(
-                    title: Text("Sort by Popularity",
-                        style: GoogleFonts.poppins()),
-                    value: sortByPopularity,
-                    onChanged: (bool value) {
-                      setState(() {
-                        sortByPopularity = value;
-                      });
-                    },
-                  ),
-                  // ...existing dropdown buttons code...
-                  DropdownButton<String>(
-                    value: selectedStatus,
-                    hint: Text("Select Status"),
-                    items:
-                        ["solved", "pending", "rejected"].map((String status) {
-                      return DropdownMenuItem<String>(
-                        value: status,
-                        child: Text(status[0].toUpperCase() +
-                            status.substring(1)), // Capitalize for display
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedStatus = newValue;
-                      });
-                    },
-                  ),
-                  SizedBox(height: 8),
-                  DropdownButton<String>(
-                    value: selectedCategory,
-                    hint: Text("Select Category"),
-                    items: categories.map((String category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedCategory = newValue;
-                      });
-                    },
-                  ),
-                ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text("Status",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, fontWeight: FontWeight.w500)),
+                    SizedBox(height: 4),
+                    DropdownButton<String>(
+                      value: selectedStatus,
+                      hint: Text("Select Status",
+                          style: GoogleFonts.poppins(fontSize: 14)),
+                      isExpanded: true,
+                      items: ["solved", "pending", "rejected"]
+                          .map((String status) {
+                        return DropdownMenuItem<String>(
+                          value: status,
+                          child: Text(
+                            status[0].toUpperCase() + status.substring(1),
+                            style: GoogleFonts.poppins(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        dialogSetState(() {
+                          selectedStatus = newValue;
+                          print('Selected status: $newValue');
+                        });
+                      },
+                    ),
+                    SizedBox(height: 16),
+                    Text("Category",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, fontWeight: FontWeight.w500)),
+                    SizedBox(height: 4),
+                    DropdownButton<String>(
+                      value: selectedCategory,
+                      hint: Text("Select Category",
+                          style: GoogleFonts.poppins(fontSize: 14)),
+                      isExpanded: true,
+                      items: categories.map((String category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(
+                            category,
+                            style: GoogleFonts.poppins(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        dialogSetState(() {
+                          selectedCategory = newValue;
+                          print('Selected category: $newValue');
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                   },
                   child: Text("Cancel", style: GoogleFonts.poppins()),
                 ),
                 TextButton(
                   onPressed: () {
-                    _toggleSortByPopularity(sortByPopularity);
                     _applyAdvancedFilters(
                       category: selectedCategory,
                       status: selectedStatus?.toLowerCase(),
                     );
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                   },
                   child: Text("Apply", style: GoogleFonts.poppins()),
                 ),
                 TextButton(
                   onPressed: () {
                     _clearFilters();
-                    _toggleSortByPopularity(false);
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
                   },
                   child: Text("Clear Filters", style: GoogleFonts.poppins()),
                 ),

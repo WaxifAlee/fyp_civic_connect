@@ -56,16 +56,17 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _handleSignUp() async {
-    if (_profileImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile picture is required'),
-        ),
-      );
-      return;
-    }
-
     try {
+      // Check if passwords match
+      if (_passwordController.text != _confirmpasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Passwords do not match'),
+          ),
+        );
+        return;
+      }
+
       // Check if phone number or CNIC already exists
       final phoneQuery = await FirebaseFirestore.instance
           .collection('users')
@@ -93,44 +94,51 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
         );
         return;
-      }
-
+      } // Create user in Firebase Auth first
       final credential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(
               email: _emailController.text, password: _passwordController.text);
 
-      String? imageUrl;
-      if (_profileImage != null) {
-        imageUrl = await _uploadImage(_profileImage!);
-      }
-
-      final userData = {
-        'full_name': _usernameController.text,
-        'locations': _addressController.text,
-        'email': _emailController.text,
-        'phone': _phoneController.text,
-        'confirm_password': _confirmpasswordController.text,
-        'role': 'citizen',
-        'profile_picture': imageUrl,
-        'created_at': DateTime.now(),
-        'updated_at': DateTime.now(),
-        'cnic': _cnicController.text,
-        'gender': _genderController.text,
-      };
-
       if (credential.user != null) {
+        // Send email verification
+        await credential.user!.sendEmailVerification();
+
+        // Store temporary user data
+        String? imageUrl;
+        if (_profileImage != null) {
+          imageUrl = await _uploadImage(_profileImage!);
+        }
+
+        final userData = {
+          'full_name': _usernameController.text,
+          'locations': _addressController.text,
+          'email': _emailController.text,
+          'phone': _phoneController.text,
+          'confirm_password': _confirmpasswordController.text,
+          'role': 'citizen',
+          'profile_picture': imageUrl,
+          'created_at': DateTime.now(),
+          'updated_at': DateTime.now(),
+          'cnic': _cnicController.text,
+          'gender': _genderController.text,
+          'email_verified': false, // Add this flag
+        };
+
+        // Store user data in a temporary collection
         await FirebaseFirestore.instance
-            .collection('users')
+            .collection('pending_users')
             .doc(credential.user?.uid)
             .set(userData);
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('User registered successfully! 🎉'),
+            content: Text(
+                'Verification email sent! Please verify your email to complete registration.'),
           ),
         );
-        FirebaseAuth.instance.currentUser!.sendEmailVerification();
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
+
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) {
           return VerificationWaitingScreen();
         }));
       }

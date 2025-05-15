@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/models/report.dart';
 import 'package:fyp_civic_connect/screens/explore_issues_screen.dart';
 import 'package:fyp_civic_connect/screens/my_reports_screen.dart';
+import 'package:fyp_civic_connect/screens/notifications_screen.dart';
 import 'package:fyp_civic_connect/services/report_service.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/themes/app_theme.dart';
@@ -22,6 +23,7 @@ class _DashboardPageState extends State<DashboardPage> {
   int _solvedCount = 0;
   int _reportedCount = 0;
   int _pendingCount = 0;
+  int _rejectedCount = 0; // Added rejected count
   List<Report> _recentReports = [];
 
   @override
@@ -38,11 +40,19 @@ class _DashboardPageState extends State<DashboardPage> {
     try {
       List<Report> reports = await _reportService.fetchReportsByCurrentUser();
       setState(() {
-        _solvedCount =
-            reports.where((report) => report.status == "solved").length;
+        _solvedCount = reports
+            .where((report) =>
+                report.status == "solved" ||
+                report.status?.toLowerCase() == "done")
+            .length;
         _reportedCount = reports.length;
-        _pendingCount =
-            reports.where((report) => report.status == "pending").length;
+        _pendingCount = reports
+            .where((report) =>
+                report.status == "pending" ||
+                report.status?.toLowerCase() == "in progress")
+            .length;
+        _rejectedCount =
+            reports.where((report) => report.status == "rejected").length;
         _recentReports =
             reports.take(3).toList(); // Get the 3 most recent reports
       });
@@ -82,7 +92,24 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Text("Dashboard",
               style: GoogleFonts.poppins(
                   fontWeight: FontWeight.w500, fontSize: 20)),
-        ),        actions: [],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.notifications_none_outlined,
+              size: 28,
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NotificationsScreen(),
+                ),
+              );
+            },
+          ),
+          SizedBox(width: 8),
+        ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -214,9 +241,11 @@ class _DashboardPageState extends State<DashboardPage> {
                               _buildOverviewItem(_solvedCount.toString(),
                                   'Solved', AppTheme.mintGreen),
                               _buildOverviewItem(_reportedCount.toString(),
-                                  'Reported', AppTheme.softPurple),
+                                  'Total', AppTheme.softPurple),
                               _buildOverviewItem(_pendingCount.toString(),
                                   'Pending', AppTheme.honeyYellow),
+                              _buildOverviewItem(_rejectedCount.toString(),
+                                  'Rejected', Colors.red),
                             ],
                           ),
                         ),
@@ -291,7 +320,7 @@ class _DashboardPageState extends State<DashboardPage> {
       statusColor = AppTheme.themePink;
       statusIcon = Icon(Icons.cancel_rounded, size: 32, color: Colors.black);
       description = "This report was rejected by the admin.";
-    } else if (status == "pending") {
+    } else if (status == "pending" || status.toLowerCase() == "in progress") {
       statusColor = AppTheme.honeyYellow;
       statusIcon = Icon(Icons.feedback_outlined, color: Colors.black, size: 32);
       description = "This report is waiting for admin's response.";

@@ -1,9 +1,9 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../themes/app_theme.dart';
-import '../widgets/back_button.dart';
 
 class ForgotScreen extends StatefulWidget {
   const ForgotScreen({super.key});
@@ -24,6 +24,32 @@ class _LoginScreenState extends State<ForgotScreen> {
 
   void onSubmit() async {
     try {
+      // Check if email exists and is verified
+      var methods = await FirebaseAuth.instance
+          .fetchSignInMethodsForEmail(_emailController.text);
+      if (methods.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("This email is not registered with us."),
+          duration: Duration(seconds: 3),
+        ));
+        return;
+      }
+
+      // Get the user record from Firestore to check verification status
+      var users = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: _emailController.text)
+          .get();
+
+      if (users.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("This email is not registered with us."),
+          duration: Duration(seconds: 3),
+        ));
+        return;
+      }
+
+      // Send password reset email
       await FirebaseAuth.instance
           .sendPasswordResetEmail(email: _emailController.text);
       setState(() {
@@ -34,9 +60,20 @@ class _LoginScreenState extends State<ForgotScreen> {
         duration: Duration(seconds: 3),
       ));
       Navigator.pushReplacementNamed(context, '/login');
+    } on FirebaseAuthException catch (e) {
+      String message = "Failed to send reset email. Please try again.";
+      if (e.code == 'user-not-found') {
+        message = "This email is not registered with us.";
+      } else if (e.code == 'invalid-email') {
+        message = "Please enter a valid email address.";
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 3),
+      ));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Failed to send reset email. Please try again."),
+        content: Text("An unexpected error occurred. Please try again."),
         duration: Duration(seconds: 3),
       ));
     }

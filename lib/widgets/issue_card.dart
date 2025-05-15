@@ -19,10 +19,11 @@ class IssueCard extends StatefulWidget {
   final double longitude;
   final String date;
   final String category;
-  final String id; // Add this
-  final int upvotes; // Add this
-  final List<String> upvotedBy; // Add this
-  final Function()? onUpvote; // Add this
+  final String id;
+  final String? reportCode; // Add this line
+  final int upvotes;
+  final List<String> upvotedBy;
+  final Function()? onUpvote;
 
   const IssueCard({
     super.key,
@@ -38,6 +39,7 @@ class IssueCard extends StatefulWidget {
     required this.date,
     required this.category,
     required this.id,
+    this.reportCode, // Add this line
     this.upvotes = 0,
     this.upvotedBy = const [],
     this.onUpvote,
@@ -110,155 +112,198 @@ class _IssueCardState extends State<IssueCard> {
   @override
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
-    final hasUpvoted = currentUser != null &&
-        widget.upvotedBy.contains(currentUser.uid); // Fixed this line
+    final hasUpvoted =
+        currentUser != null && widget.upvotedBy.contains(currentUser.uid);
 
     return GestureDetector(
       onTap: _toggleExpand,
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Reporter Info
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(widget.profileImage),
-                    radius: 20,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.reportCode != null)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.themePurple.withOpacity(0.1),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
                   ),
-                  SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(width: 12),
-                      Text(
-                        widget.reporterName,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Report Code:',
+                      style: GoogleFonts.poppins(
+                        color: AppTheme.themePurple,
+                        fontSize: 12,
+                        fontWeight: FontWeight.normal,
                       ),
-                      Text(_getTimeAgo(widget.date),
-                          style: GoogleFonts.poppins(fontSize: 10)),
-                    ],
-                  )
-                ],
-              ),
-              SizedBox(height: 12),
-              // Title
-              Text(
-                widget.title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                    ),
+                    Text(
+                      widget.reportCode!,
+                      style: GoogleFonts.poppins(
+                        color: AppTheme.themePurple,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              SizedBox(height: 8),
-              // Image Slider
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: GestureDetector(
-                  onTap: () {
-                    _showImageDialog(context, widget.issueImages);
-                  },
-                  child: ImageSlider(images: widget.issueImages),
-                ),
-              ),
-              SizedBox(height: 12),
-              // Description
-              Text(
-                widget.description,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
-                maxLines: _isExpanded ? null : 2,
-                overflow:
-                    _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
-              ),
-              SizedBox(height: 8),
-              // Location & Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: _openMap,
-                    child: Row(
-                      children: [
-                        Icon(Icons.location_on, size: 16, color: Colors.red),
-                        SizedBox(width: 4),
-                        Text(
-                          'Open in Maps',
-                          style: GoogleFonts.poppins(
-                            fontSize: 12,
-                            color: Colors.blue[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    widget.category,
-                    style: GoogleFonts.poppins(
-                        fontSize: 12, color: Colors.grey[600]),
-                  ),
-                  // Status Badge
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: widget.status == "solved"
-                          ? Colors.green[200]
-                          : Colors.orange[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      widget.status == "solved"
-                          ? Icons.check
-                          : Icons.remove_red_eye,
-                      color: widget.status == "solved"
-                          ? Colors.green
-                          : Colors.orange,
-                      size: 16,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 8),
-              // Upvote Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                  // Reporter Info
                   Row(
                     children: [
-                      Text("Upvote ", style: GoogleFonts.poppins(fontSize: 12)),
-                      IconButton(
-                        icon: Icon(
-                          hasUpvoted
-                              ? Icons.arrow_circle_up
-                              : Icons.arrow_circle_up_outlined,
-                          color:
-                              hasUpvoted ? AppTheme.themePurple : Colors.grey,
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(widget.profileImage),
+                        radius: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.reporterName,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(_getTimeAgo(widget.date),
+                              style: GoogleFonts.poppins(fontSize: 10)),
+                        ],
+                      )
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  // Title
+                  Text(
+                    widget.title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  // Image Slider
+                  AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: GestureDetector(
+                      onTap: () {
+                        _showImageDialog(context, widget.issueImages);
+                      },
+                      child: ImageSlider(images: widget.issueImages),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  // Description
+                  Text(
+                    widget.description,
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    maxLines: _isExpanded ? null : 2,
+                    overflow: _isExpanded
+                        ? TextOverflow.visible
+                        : TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 8),
+                  // Location & Status
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: _openMap,
+                        child: Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 16, color: Colors.red),
+                            SizedBox(width: 4),
+                            Text(
+                              'Open in Maps',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: Colors.blue[600],
+                              ),
+                            ),
+                          ],
                         ),
-                        onPressed: widget.onUpvote,
                       ),
                       Text(
-                        "${widget.upvotes}",
-                        style: TextStyle(
-                          color:
-                              hasUpvoted ? AppTheme.themePurple : Colors.grey,
-                          fontWeight: FontWeight.bold,
+                        widget.category,
+                        style: GoogleFonts.poppins(
+                            fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      // Status Badge
+                      Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: widget.status == "solved"
+                              ? Colors.green[200]
+                              : Colors.orange[200],
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: Icon(
+                          widget.status == "solved"
+                              ? Icons.check
+                              : Icons.remove_red_eye,
+                          color: widget.status == "solved"
+                              ? Colors.green
+                              : Colors.orange,
+                          size: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  // Upvote Button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Text("Upvote ",
+                              style: GoogleFonts.poppins(fontSize: 12)),
+                          IconButton(
+                            icon: Icon(
+                              hasUpvoted
+                                  ? Icons.arrow_circle_up
+                                  : Icons.arrow_circle_up_outlined,
+                              color: hasUpvoted
+                                  ? AppTheme.themePurple
+                                  : Colors.grey,
+                            ),
+                            onPressed: widget.onUpvote,
+                          ),
+                          Text(
+                            "${widget.upvotes}",
+                            style: TextStyle(
+                              color: hasUpvoted
+                                  ? AppTheme.themePurple
+                                  : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

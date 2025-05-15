@@ -1,4 +1,5 @@
 import '../themes/app_theme.dart';
+import '../utils/validators.dart';
 import 'package:flutter/material.dart';
 
 class LoginForm extends StatefulWidget {
@@ -6,7 +7,7 @@ class LoginForm extends StatefulWidget {
   final TextEditingController passwordController;
   final GlobalKey<FormState> formKey;
   final void Function(String email, String password) onSubmit;
-  bool isLoading;
+  final bool isLoading;
 
   LoginForm(
       {super.key,
@@ -47,16 +48,7 @@ class _LoginFormState extends State<LoginForm> {
                         fontSize: 14,
                       )),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return 'Please enter a valid email address';
-                    }
-                    return null;
-                  },
+                  validator: Validators.validateEmail,
                 ))
               ],
             ),

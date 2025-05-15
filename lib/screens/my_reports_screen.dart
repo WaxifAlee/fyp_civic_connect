@@ -62,8 +62,17 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   void _applyAdvancedFilters({String? category, String? status}) {
     setState(() {
       _filteredReports = _reports.where((report) {
-        bool matchesCategory = category == null || report.category == category;
-        bool matchesStatus = status == null || report.status == status;
+        bool matchesCategory = category == null ||
+            (report.category?.toLowerCase() == category.toLowerCase());
+        bool matchesStatus = status == null ||
+            (report.status?.toLowerCase() == status.toLowerCase());
+
+        print('Filtering report: ${report.title}');
+        print(
+            'Category match: $matchesCategory (filter: $category, report: ${report.category})');
+        print(
+            'Status match: $matchesStatus (filter: $status, report: ${report.status})');
+
         return matchesCategory && matchesStatus;
       }).toList();
     });
@@ -198,11 +207,12 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                                       reporterName:
                                           report.reporterName ?? 'Unknown',
                                       date: report.date.toString(),
+                                      reportCode: report.reportCode,
                                       profileImage: report.profilePicture !=
                                                   null &&
                                               report.profilePicture != ''
                                           ? 'https://vlkfmraxbpwctukymsyt.supabase.co/storage/v1/object/public/${report.profilePicture}'
-                                          : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128", // Add profile image if available
+                                          : "https://ui-avatars.com/api/?name=${report.reporterName}&background=0D8ABC&color=fff&size=128",
                                       issueImages: report.mediaRefrence,
                                       title: report.title ?? "No Title",
                                       description: report.description ??
@@ -243,84 +253,120 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
   void _showFilterDialog() {
     String? selectedCategory;
     String? selectedStatus;
-    List<String> categories = _reports
-        .map((report) => report.category ?? "No Category")
-        .toSet()
-        .toList();
+
+    // Define all available categories
+    List<String> predefinedCategories = [
+      'Municipal Corportaion',
+      'Police Department',
+      'Fire & Emergency Services',
+      'Electricity & Gas Department',
+      'Public Works Department (PWD)',
+    ];
+
+    // Combine predefined categories with any additional ones from reports
+    List<String> categories = {
+      ...predefinedCategories,
+      ..._reports.map((report) => report.category ?? "No Category")
+    }.toList()
+      ..removeWhere(
+          (category) => category == "No Category") // Remove empty categories
+      ..sort();
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Filter Issues", style: GoogleFonts.poppins()),
-          content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Add filter options here
-                  DropdownButton<String>(
-                    value: selectedStatus,
-                    hint: Text("Select Status"),
-                    items:
-                        ["solved", "pending", "rejected"].map((String status) {
-                      return DropdownMenuItem<String>(
-                        value: status,
-                        child: Text(status[0].toUpperCase() +
-                            status.substring(1)), // Capitalize for display
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedStatus = newValue;
-                      });
-                    },
-                  ),
-                  SizedBox(height: 8),
-                  DropdownButton<String>(
-                    value: selectedCategory,
-                    hint: Text("Select Category"),
-                    items: categories.map((String category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
-                      );
-                    }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedCategory = newValue;
-                      });
-                    },
-                  ),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text("Cancel", style: GoogleFonts.poppins()),
-            ),
-            TextButton(
-              onPressed: () {
-                _applyAdvancedFilters(
-                  category: selectedCategory,
-                  status: selectedStatus?.toLowerCase(),
-                );
-                Navigator.pop(context);
-              },
-              child: Text("Apply", style: GoogleFonts.poppins()),
-            ),
-            TextButton(
-              onPressed: () {
-                _clearFilters();
-                Navigator.pop(context);
-              },
-              child: Text("Clear Filters", style: GoogleFonts.poppins()),
-            ),
-          ],
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter dialogSetState) {
+            return AlertDialog(
+              title: Text("Filter Issues", style: GoogleFonts.poppins()),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text("Status",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, fontWeight: FontWeight.w500)),
+                    SizedBox(height: 4),
+                    DropdownButton<String>(
+                      value: selectedStatus,
+                      hint: Text("Select Status",
+                          style: GoogleFonts.poppins(fontSize: 14)),
+                      isExpanded: true,
+                      items: ["solved", "pending", "rejected"]
+                          .map((String status) {
+                        return DropdownMenuItem<String>(
+                          value: status,
+                          child: Text(
+                            status[0].toUpperCase() + status.substring(1),
+                            style: GoogleFonts.poppins(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        dialogSetState(() {
+                          selectedStatus = newValue;
+                          print('Selected status: $newValue');
+                        });
+                      },
+                    ),
+                    SizedBox(height: 16),
+                    Text("Category",
+                        style: GoogleFonts.poppins(
+                            fontSize: 14, fontWeight: FontWeight.w500)),
+                    SizedBox(height: 4),
+                    DropdownButton<String>(
+                      value: selectedCategory,
+                      hint: Text("Select Category",
+                          style: GoogleFonts.poppins(fontSize: 14)),
+                      isExpanded: true,
+                      items: categories.map((String category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: Text(
+                            category,
+                            style: GoogleFonts.poppins(fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        dialogSetState(() {
+                          selectedCategory = newValue;
+                          print('Selected category: $newValue');
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                  },
+                  child: Text("Cancel", style: GoogleFonts.poppins()),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _applyAdvancedFilters(
+                      category: selectedCategory,
+                      status: selectedStatus?.toLowerCase(),
+                    );
+                    Navigator.pop(dialogContext);
+                  },
+                  child: Text("Apply", style: GoogleFonts.poppins()),
+                ),
+                TextButton(
+                  onPressed: () {
+                    _clearFilters();
+                    Navigator.pop(dialogContext);
+                  },
+                  child: Text("Clear Filters", style: GoogleFonts.poppins()),
+                ),
+              ],
+            );
+          },
         );
       },
     );

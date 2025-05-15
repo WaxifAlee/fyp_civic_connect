@@ -33,7 +33,8 @@ class CivicConnectApp extends StatelessWidget {
       routes: {
         '/login': (context) => LoginScreen(),
         '/home': (context) => WelcomeScreen(),
-        '/signUp': (context) => SignupScreen(),        '/reset_password': (context) => ForgotScreen(),
+        '/signUp': (context) => SignupScreen(),
+        '/reset_password': (context) => ForgotScreen(),
         '/report_issue': (context) => ReportIssueScreen(),
         '/dashboard': (context) => DashboardPage(),
         '/profile': (context) => Profile(),

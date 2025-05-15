@@ -1,6 +1,7 @@
 // ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables
 
 import '../themes/app_theme.dart';
+import '../utils/validators.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -42,14 +43,32 @@ class _SignupFormState extends State<SignupForm> {
   bool isPasswordVisible = false;
   XFile? _profileImage;
   bool _isCreatingAccount = false; // Add this state variable
-
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    setState(() {
-      _profileImage = image;
-    });
-    widget.onImagePicked(_profileImage);
+
+    if (image != null) {
+      // Check file size (5MB limit)
+      final bytes = await image.length();
+      if (bytes > 5 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Image size must be less than 5MB')));
+        return;
+      }
+
+      // Check file type
+      final String mimeType = image.mimeType ?? '';
+      if (!['image/jpeg', 'image/png'].contains(mimeType)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Only JPEG and PNG images are allowed')));
+        return;
+      }
+
+      setState(() {
+        _profileImage = image;
+      });
+      widget.onImagePicked(_profileImage);
+    }
   }
 
   @override
@@ -76,7 +95,7 @@ class _SignupFormState extends State<SignupForm> {
                   child: _profileImage == null
                       ? Center(
                           child: Text(
-                            "Tap to select profile picture",
+                            "Tap to select profile picture (optional)",
                             style: TextStyle(
                               color: AppTheme.themePlaceHolderText,
                               fontSize: 14,
@@ -91,12 +110,7 @@ class _SignupFormState extends State<SignupForm> {
               ),
             )
           ],
-        ),
-        if (_profileImage == null)
-          Text(
-            'Profile picture is required',
-            style: TextStyle(color: Colors.red),
-          ),
+        ), // Profile picture is optional
         Row(
           children: [
             Icon(
@@ -139,12 +153,7 @@ class _SignupFormState extends State<SignupForm> {
                 child: TextFormField(
               controller: widget.usernameController,
               keyboardType: TextInputType.name,
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please Enter Your Full Name';
-                }
-                return null;
-              },
+              validator: Validators.validateName,
               decoration: InputDecoration(
                   labelText: 'Full Name',
                   labelStyle: TextStyle(
@@ -183,12 +192,7 @@ class _SignupFormState extends State<SignupForm> {
                               isPasswordVisible = !isPasswordVisible;
                             });
                           })),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a password';
-                    }
-                    return null;
-                  }),
+                  validator: Validators.validatePassword),
             )
           ],
         ),
@@ -213,6 +217,9 @@ class _SignupFormState extends State<SignupForm> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm your password';
+                    }
+                    if (value != widget.passwordController.text) {
+                      return 'Passwords do not match';
                     }
                     return null;
                   }),
@@ -263,12 +270,7 @@ class _SignupFormState extends State<SignupForm> {
                       fontSize: 14,
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a valid phone number';
-                    }
-                    return null;
-                  }),
+                  validator: Validators.validatePhone),
             )
           ],
         ),
@@ -289,15 +291,7 @@ class _SignupFormState extends State<SignupForm> {
                       fontSize: 14,
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your CNIC';
-                    }
-                    if (value.length != 15) {
-                      return 'CNIC must be 15 characters long';
-                    }
-                    return null;
-                  }),
+                  validator: Validators.validateCNIC),
             )
           ],
         ),
@@ -400,7 +394,7 @@ class _SignupFormState extends State<SignupForm> {
                     return AlertDialog(
                       title: Text("Validation Error"),
                       content: Text(
-                        "Please fill out all required fields and ensure the password meets the required criteria.",
+                        "Please correctly fill out all fields",
                         style: TextStyle(fontSize: 16),
                       ),
                       actions: [
