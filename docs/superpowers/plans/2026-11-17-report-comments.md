@@ -21,13 +21,17 @@ Base: `c03e9af`, branch `main`, tracked tree clean; untracked `.agents/` is user
 
 ## Tasks
 
-- [ ] Review the plan independently while writing initial failing service/controller and rollback-only SQL tests.
-- [ ] Implement `008_report_comments.sql`: private table, verified RPCs, keyset pagination, own-only body-erasing deletion, serialized idempotency. Run candidate migration plus security assertions in one rollback-only hosted transaction.
-- [ ] Implement `domain/report_comment.dart`, `data/report_comments_service.dart`, `application/report_comments_controller.dart` and session-only preview data. Test validation, pagination, mutations, unknown outcomes and stale sessions.
-- [ ] Implement `widgets/report_comments_panel.dart`; integrate citizen details and authority editor. Verify shared use, responsive/dark/enlarged text, retry, deletion confirmation and successful post feedback.
-- [ ] Independent security and client reviews; resolve findings. Run complete Flutter tests/analyzer and existing SQL regressions; deploy migration and test live API with disposable fixtures, including concurrent retries.
-- [ ] Build web/Android, inspect browser and emulator behavior, update README/backend docs, remove fixtures, leave both clients running, commit and push; verify remote SHA.
+- [x] Review the plan independently while writing initial failing service/controller and rollback-only SQL tests.
+- [x] Implement `008_report_comments.sql`: private table, verified RPCs, keyset pagination, own-only body-erasing deletion, serialized idempotency. Run candidate migration plus security assertions in one rollback-only hosted transaction.
+- [x] Implement `domain/report_comment.dart`, `data/report_comments_service.dart`, `application/report_comments_controller.dart` and session-only preview data. Test validation, pagination, mutations, unknown outcomes and stale sessions.
+- [x] Implement `widgets/report_comments_panel.dart`; integrate citizen details and authority editor. Verify shared use, responsive/dark/enlarged text, retry, deletion confirmation and successful post feedback.
+- [x] Independent security and client reviews; resolve findings. Run complete Flutter tests/analyzer and existing SQL regressions; deploy migration and test live API with disposable fixtures, including concurrent retries.
+- [x] Build web/Android, inspect browser and emulator behavior, update README/backend docs, remove fixtures, leave both clients running, commit and push; verify remote SHA.
 
 ## Rollout and rollback
 
 Apply forward migration through the authenticated Supabase CLI to the existing dedicated project after rollback-only checks. Old clients ignore the new RPCs. Reverting the client commit hides comments without deleting data; retain the schema and private rows rather than a destructive down migration. Record command results, reviews and live checks in a delivery note.
+
+## Review outcomes
+
+Client P2 keyboard overlap was reproduced at 375×812 with a 320px inset and fixed before release. Security review led to profile-before-report locking and a complete report cascade index. The suggested letter-v corruption was falsified on hosted PostgreSQL 17.12 (`ascii(E'\v')=11`); explicit U+000B and assertions remain for clarity. Both reviewers approved source `9302a33`. Final API checks and independently blocked account-cascade orderings passed against deployed migration 008.

@@ -49,6 +49,17 @@ Notifications currently show an empty state and a link to My Reports. Service up
 Open a report to read or join its **Comments** discussion. Verified accounts can post up to 1,000 characters; the discussion shows display names and local timestamps. Use refresh to load new activity and **Load older comments** for earlier posts. You can remove your own comments after confirmation. Comments and official service updates remain separate, and posting a comment does not change a report’s status.
 
 <details>
+<summary>Compact Explore and report discussion previews</summary>
+
+| Explore · compact filters | Report · community comments |
+| :---: | :---: |
+| <img src="docs/images/explore-phone.png" alt="Explore with a compact search row and Filters button above community reports" width="280"> | <img src="docs/images/report-comments-phone.png" alt="Report discussion with a labeled composer, display name, timestamp and own-comment removal" width="280"> |
+
+Both screenshots use isolated sample data.
+
+</details>
+
+<details>
 <summary>Authority workspace preview</summary>
 
 <img src="docs/images/authority-desktop.png" alt="Authority report queue with scoped status counts, search, department filters and review actions" width="1100">
