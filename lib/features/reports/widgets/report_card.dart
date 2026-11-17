@@ -5,40 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/civic_widgets.dart';
 import '../../../models/report.dart';
 import '../domain/report_filters.dart';
-
-class StatusBadge extends StatelessWidget {
-  const StatusBadge({super.key, required this.status});
-  final ReportStatus status;
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final attention =
-        status == ReportStatus.pending || status == ReportStatus.inProgress;
-    final closed = status == ReportStatus.rejected;
-    final background = closed
-        ? scheme.surfaceContainerHighest
-        : attention
-            ? scheme.secondaryContainer
-            : scheme.primaryContainer;
-    final foreground = closed
-        ? scheme.onSurfaceVariant
-        : attention
-            ? scheme.onSecondaryContainer
-            : scheme.onPrimaryContainer;
-    return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-            color: background, borderRadius: BorderRadius.circular(8)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(status.icon, size: 15, color: foreground),
-          const SizedBox(width: 6),
-          Flexible(
-              child: Text(status.label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: foreground, fontWeight: FontWeight.w600)))
-        ]));
-  }
-}
+import 'report_progress_panel.dart';
+import 'status_badge.dart';
+export 'status_badge.dart';
 
 String reportAge(DateTime? date) {
   if (date == null) return 'Date unavailable';
@@ -230,6 +199,7 @@ class ReportDetails extends StatefulWidget {
 
 class _ReportDetailsState extends State<ReportDetails> {
   bool _busy = false;
+  String? _latestStatus;
   @override
   Widget build(BuildContext context) {
     final report = widget.report;
@@ -260,7 +230,8 @@ class _ReportDetailsState extends State<ReportDetails> {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             StatusBadge(
-                                status: ReportStatus.parse(report.status)),
+                                status: ReportStatus.parse(
+                                    _latestStatus ?? report.status)),
                             Text(categoryLabel(report.category),
                                 style: theme.textTheme.bodySmall)
                           ]),
@@ -359,6 +330,16 @@ class _ReportDetailsState extends State<ReportDetails> {
                                 ]
                               ])),
                       const SizedBox(height: 24),
+                      if (report.id != null) ...[
+                        ReportProgressPanel(
+                            reportId: report.id!,
+                            onLatestStatus: (status) {
+                              if (mounted && _latestStatus != status) {
+                                setState(() => _latestStatus = status);
+                              }
+                            }),
+                        const SizedBox(height: 24),
+                      ],
                       if (widget.onSupport != null)
                         AsyncButton(
                             label:

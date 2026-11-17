@@ -105,6 +105,13 @@ class AppShell extends StatelessWidget {
                             style: Theme.of(context).textTheme.bodySmall),
                         const SizedBox(width: 20)
                       ],
+                      if (!rail)
+                        IconButton(
+                            tooltip: 'Authority workspace',
+                            onPressed: () => Navigator.pushReplacementNamed(
+                                context, '/authority'),
+                            icon: const Icon(
+                                Icons.admin_panel_settings_outlined)),
                       IconButton(
                           tooltip: 'Change appearance',
                           icon: Icon(
@@ -225,6 +232,20 @@ class AppShell extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _navItem(context, i, wide))
               ]))),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: wide
+            ? TextButton.icon(
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/authority'),
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                label: const Text('Authority workspace'))
+            : IconButton(
+                tooltip: 'Authority workspace',
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/authority'),
+                icon: const Icon(Icons.admin_panel_settings_outlined)),
+      ),
       if (wide)
         Padding(
             padding: const EdgeInsets.all(20),

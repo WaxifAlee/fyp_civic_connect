@@ -13,13 +13,16 @@ class ExploreIssuesScreen extends StatelessWidget {
 }
 
 class MyReportsScreen extends StatelessWidget {
-  const MyReportsScreen({super.key});
+  const MyReportsScreen({super.key, this.initialStatus});
+  final ReportStatus? initialStatus;
   @override
-  Widget build(BuildContext context) => const ReportFeedScreen(mine: true);
+  Widget build(BuildContext context) =>
+      ReportFeedScreen(mine: true, initialStatus: initialStatus);
 }
 
 class ReportFeedScreen extends StatefulWidget {
-  const ReportFeedScreen({super.key, this.mine = false});
+  const ReportFeedScreen({super.key, this.mine = false, this.initialStatus});
+  final ReportStatus? initialStatus;
   final bool mine;
   @override
   State<ReportFeedScreen> createState() => _ReportFeedScreenState();
@@ -36,6 +39,7 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
   @override
   void initState() {
     super.initState();
+    _status = widget.initialStatus;
     _controller = ReportsController(mine: widget.mine)..load();
   }
 

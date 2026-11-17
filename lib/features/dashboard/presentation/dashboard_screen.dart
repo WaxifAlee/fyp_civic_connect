@@ -135,88 +135,78 @@ class _DashboardPageState extends State<DashboardPage> {
         note: 'Your contributions',
         status: null
       ),
-      (
-        label: 'Submitted',
-        count: reports
-            .where((r) => ReportStatus.parse(r.status) == ReportStatus.pending)
-            .length,
-        icon: Icons.schedule_outlined,
-        note: 'Awaiting review',
-        status: ReportStatus.pending
-      ),
-      (
-        label: 'In progress',
-        count: reports
-            .where(
-                (r) => ReportStatus.parse(r.status) == ReportStatus.inProgress)
-            .length,
-        icon: Icons.engineering_outlined,
-        note: 'Being worked on',
-        status: ReportStatus.inProgress
-      ),
-      (
-        label: 'Resolved',
-        count: reports
-            .where((r) => ReportStatus.parse(r.status) == ReportStatus.resolved)
-            .length,
-        icon: Icons.check_circle_outline,
-        note: 'A difference made',
-        status: ReportStatus.resolved
-      ),
+      for (final status in [
+        ReportStatus.pending,
+        ReportStatus.inProgress,
+        ReportStatus.resolved,
+        ReportStatus.rejected
+      ])
+        (
+          label: status.label,
+          count: reports
+              .where((r) => ReportStatus.parse(r.status) == status)
+              .length,
+          icon: status.icon,
+          note: switch (status) {
+            ReportStatus.pending => 'Awaiting review',
+            ReportStatus.inProgress => 'Being worked on',
+            ReportStatus.resolved => 'A difference made',
+            _ => 'Review the outcome',
+          },
+          status: status
+        ),
     ];
     return LayoutBuilder(builder: (context, c) {
-      final columns =
-          c.maxWidth >= 800 && MediaQuery.textScalerOf(context).scale(1) < 1.5
-              ? 4
-              : c.maxWidth >= 300
+      final theme = Theme.of(context);
+      final scale = MediaQuery.textScalerOf(context).scale(1);
+      final columns = c.maxWidth >= 1000 && scale < 1.5
+          ? 5
+          : c.maxWidth >= 700 && scale < 1.5
+              ? 3
+              : c.maxWidth >= 300 && scale < 1.7
                   ? 2
                   : 1;
       final width = (c.maxWidth - (columns - 1) * 16) / columns;
+      final available = !_controller.loading && _controller.error == null;
       return Wrap(spacing: 16, runSpacing: 16, children: [
         for (final metric in metrics)
           SizedBox(
               width: width,
-              child: AppPanel(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                            padding: const EdgeInsets.all(9),
-                            decoration: BoxDecoration(
-                                color: metric.status == ReportStatus.pending ||
-                                        metric.status == ReportStatus.inProgress
-                                    ? Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer,
-                                borderRadius: BorderRadius.circular(10)),
-                            child: Icon(metric.icon,
-                                size: 21,
-                                color: metric.status == ReportStatus.pending ||
-                                        metric.status == ReportStatus.inProgress
-                                    ? Theme.of(context)
-                                        .colorScheme
-                                        .onSecondaryContainer
-                                    : Theme.of(context).colorScheme.primary)),
-                        const SizedBox(height: 16),
-                        Text(
-                            _controller.loading || _controller.error != null
-                                ? '—'
-                                : '${metric.count}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineLarge
-                                ?.copyWith(fontSize: 34)),
-                        const SizedBox(height: 4),
-                        Text(metric.label,
-                            style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 4),
-                        Text(metric.note,
-                            style: Theme.of(context).textTheme.bodySmall)
-                      ])))
+              child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    key: ValueKey(
+                        'personal-metric-${metric.status?.name ?? 'total'}'),
+                    onTap: !available
+                        ? null
+                        : () => Navigator.pushReplacementNamed(
+                            context, '/my_reports',
+                            arguments: metric.status),
+                    child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(children: [
+                                Icon(metric.icon,
+                                    size: 22, color: theme.colorScheme.primary),
+                                const Spacer(),
+                                Icon(Icons.arrow_forward,
+                                    size: 16,
+                                    color: theme.colorScheme.onSurfaceVariant)
+                              ]),
+                              const SizedBox(height: 16),
+                              Text(available ? '${metric.count}' : '—',
+                                  style: theme.textTheme.headlineLarge
+                                      ?.copyWith(fontSize: 34)),
+                              const SizedBox(height: 4),
+                              Text(metric.label,
+                                  style: theme.textTheme.titleMedium),
+                              const SizedBox(height: 4),
+                              Text(metric.note,
+                                  style: theme.textTheme.bodySmall),
+                            ])),
+                  ))),
       ]);
     });
   }

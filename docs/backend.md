@@ -93,3 +93,9 @@ Keep database passwords, access tokens, and secret/service-role keys in server-s
 An older revision exposed credentials for a different Supabase project and image-compression provider. Revoke those original credentials in their provider accounts; deleting source does not revoke a key. The replacement project uses separate credentials.
 
 Use production Android signing and a final application ID before distribution. Validate iOS builds on macOS. Configure backups, SMTP, operational monitoring, and an authorized status-management process for production. Free hosted projects can pause after inactivity; check project health before a testing session.
+
+## Service-team permissions and progress
+
+Migrations `20261117000600` and `20261117000700` add the [authority workspace](authority-workspace.md). Membership is private and granted only through trusted database administration; metadata never grants a role. Department staff can review/update their own department, while administrators can review all departments. Public notes are visible to verified citizens without exposing audit actor/request IDs or private profile identity/contact fields.
+
+Status updates lock current membership and report rows, check the expected version and permitted transition, then append an immutable request receipt with the status change. Identical retries return the original receipt; conflicting versions require reload. Retained history prevents report UUID reuse even after reporter-account deletion. [authority_security.sql](../supabase/tests/authority_security.sql) covers the added boundaries with rollback-only fixtures.

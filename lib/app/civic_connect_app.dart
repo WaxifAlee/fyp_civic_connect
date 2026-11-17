@@ -12,7 +12,9 @@ import '../features/auth/splash_screen.dart';
 import '../features/auth/verification_waiting_screen.dart';
 import '../features/auth/welcome_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
+import '../features/authority/presentation/authority_entry.dart';
 import '../features/reports/presentation/report_feed_screen.dart';
+import '../features/reports/domain/report_filters.dart';
 import '../features/reports/presentation/report_issue_screen.dart';
 import '../services/supabase_client.dart';
 import '../services/user_service.dart';
@@ -83,11 +85,13 @@ class _CivicConnectAppState extends State<CivicConnectApp> {
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: AppSession.instance.themeMode,
-            initialRoute: widget.initialRoute ?? '/',
+            initialRoute: widget.initialRoute ??
+                (Uri.base.fragment == '/authority' ? '/authority' : '/'),
             routes: _routes,
             // An explicit entry point should not create a hidden bootstrap route.
             // Returning to '/' still initializes real services after leaving a demo.
-            onGenerateInitialRoutes: widget.initialRoute == null
+            onGenerateInitialRoutes: widget.initialRoute == null &&
+                    Uri.base.fragment != '/authority'
                 ? null
                 : (name) => [
                       MaterialPageRoute<void>(
@@ -109,8 +113,13 @@ class _CivicConnectAppState extends State<CivicConnectApp> {
         '/recover_password': (_) => const RecoveryScreen(),
         '/verification': (_) => const VerificationWaitingScreen(),
         '/dashboard': (_) => _authenticated(const DashboardPage()),
+        '/authority': (_) => const AuthorityEntry(),
         '/explore': (_) => _authenticated(const ExploreIssuesScreen()),
-        '/my_reports': (_) => _authenticated(const MyReportsScreen()),
+        '/my_reports': (context) {
+          final status = ModalRoute.of(context)?.settings.arguments;
+          return _authenticated(MyReportsScreen(
+              initialStatus: status is ReportStatus ? status : null));
+        },
         '/report_issue': (_) => _authenticated(const ReportIssueScreen()),
         '/profile': (_) => _authenticated(const Profile()),
         '/notifications': (_) => _authenticated(const NotificationsScreen()),

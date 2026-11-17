@@ -79,6 +79,12 @@ class WelcomeScreen extends StatelessWidget {
                     icon: const Icon(Icons.explore_outlined),
                     label: const Text('Explore the demo'),
                   ),
+                  TextButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/authority'),
+                      icon: const Icon(Icons.admin_panel_settings_outlined,
+                          size: 20),
+                      label: const Text('Service-team workspace')),
                   const SizedBox(height: 8),
                   Text(
                     'The demo uses sample reports. No account needed.',

@@ -64,6 +64,15 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('phone header opens the authority workspace', (tester) async {
+    await openScreen(tester, '/dashboard', size: const Size(375, 900));
+    await tester.tap(find.byTooltip('Authority workspace'));
+    await tester.pumpAndSettle();
+    expect(find.text('Authority workspace'), findsOneWidget);
+    expect(find.byKey(const ValueKey('metric-pending')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('phone navigation opens explore and query retains status filter',
       (tester) async {
     await openScreen(tester, '/dashboard', size: const Size(375, 900));
@@ -80,6 +89,20 @@ void main() {
     await tester.tap(find.text('Reset'));
     await tester.pumpAndSettle();
     expect(find.text('Open drain cover beside the bus stop'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('overview status metrics open the matching personal queue',
+      (tester) async {
+    await openScreen(tester, '/dashboard');
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('personal-metric-resolved')));
+    await tester.tap(find.byKey(const ValueKey('personal-metric-resolved')));
+    await tester.pumpAndSettle();
+    expect(find.text('My reports'), findsWidgets);
+    expect(find.text('Waste collection needed in the residential lane'),
+        findsOneWidget);
+    expect(find.text('Streetlight out near the main market'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

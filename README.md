@@ -31,18 +31,28 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 
 | Area | What the application provides |
 | --- | --- |
-| Overview | Personal report counts, recent activity, and guidance for creating a report. |
+| Overview | Actionable personal report counts, recent activity, and status-filtered report tracking, including closed reports. |
 | Explore | Report cards and details, combined search/category/status filters, sorting, refresh, and paged display. |
 | Reporting | Department selection, validated photos, precise map pins or manual/GPS locations, upload progress, reference codes, and recovery of interrupted submissions. |
 | Community support | Toggle support for a report; displayed counts follow the committed database transaction. |
-| My Reports | Review personal submissions and confirm deletion of reports owned by the signed-in citizen. |
+| My Reports | Review personal submissions, read public service updates, and confirm deletion of reports owned by the signed-in citizen. |
+| Authority workspace | Department-scoped review queue, administrator filters, bounded pagination, photos/location context, versioned status updates, and immutable public progress history. |
 | Accounts | Email/password registration, email verification, password reset, profile editing, and password changes with reauthentication. |
 | Appearance | Evergreen and warm neutral surfaces, bundled Public Sans, outlined icons, persistent light/dark/system settings, and reduced-motion support. |
 | Responsive navigation | Labeled bottom navigation on phones, a compact rail on tablets, and a sidebar on wider screens. |
 
 Departments cover municipal services, public safety, fire & emergency, electricity & gas, and roads & infrastructure. Status labels include Submitted, In progress, Resolved, and Closed.
 
-Notifications currently show an empty state and a link to My Reports. There is no live notification feed, push delivery service, or authority/admin application in this repository.
+Notifications currently show an empty state and a link to My Reports. Service updates are available in report details; there is no push delivery service or live notification feed. The [authority workspace guide](docs/authority-workspace.md) covers staff provisioning, permissions, report triage, and progress publishing.
+
+<details>
+<summary>Authority workspace preview</summary>
+
+<img src="docs/images/authority-desktop.png" alt="Authority report queue with scoped status counts, search, department filters and review actions" width="1100">
+
+Open `/#/authority` or select **Authority workspace** in the app. Staff sign in with a verified account; a trusted administrator grants either one department or all-department access. The [setup and workflow guide](docs/authority-workspace.md) includes a reusable membership SQL template, permitted status changes, conflict recovery and public-note visibility.
+
+</details>
 
 ## Stack
 
@@ -197,6 +207,7 @@ lib/
 ├── features/
 │   ├── auth/            Welcome, registration, verification, sign-in, recovery
 │   ├── dashboard/       Personal overview and reporting guidance
+│   ├── authority/       Scoped staff queue, RPC client, versioned progress editor
 │   ├── reports/         Application state, data, filters, screens, widgets
 │   └── account/         Profile, appearance, security, notifications
 ├── models/              Citizen and report data contracts
@@ -219,7 +230,7 @@ flutter build web --release --dart-define=PREVIEW_MODE=true
 flutter build apk --debug --dart-define-from-file=config/backend.local.json
 ```
 
-The [Supabase delivery record](docs/superpowers/2026-11-17-supabase-delivery.md) records the checks run for this migration. The earlier [UI delivery record](docs/superpowers/2026-11-17-redesign-delivery.md) covers the interface redesign. Verification is recorded evidence for those revisions, not a guarantee for a different deployment.
+The [authority delivery record](docs/superpowers/2026-11-17-authority-delivery.md) covers the staff workspace, live concurrency and browser checks. The [Supabase delivery record](docs/superpowers/2026-11-17-supabase-delivery.md) records the original backend migration checks. The earlier [UI delivery record](docs/superpowers/2026-11-17-redesign-delivery.md) covers the interface redesign. Verification is recorded evidence for those revisions, not a guarantee for a different deployment.
 
 Coverage includes report parsing and filters, photo validation, geographic boundaries, preview isolation, submission recovery, authentication errors, theme contrast, responsive navigation, and reduced motion. Widget checks include 375 px dark layouts at 2× text size. [SQL integration tests](supabase/tests) exercise database permissions and report transactions against the deployed schema.
 
@@ -242,7 +253,7 @@ UI capture loads bundled text/icon fonts and writes images to `/tmp/civic-connec
 - **Web:** publish the generated `build/web` directory to a static host. Set Flutter's `--base-href` when hosting below a subpath, use HTTPS, and rebuild with the intended public configuration.
 - **Android:** local testing uses a debug APK. The current [release build configuration](android/app/build.gradle) also uses debug signing and the example application ID; configure your own identifier and production signing before distribution.
 - **iOS:** no iOS build was verified in the Linux delivery environment. Complete native setup and validation on macOS before claiming iOS readiness.
-- **Operations:** report status changes require a trusted administrative process. Citizen clients cannot assign statuses. This repository has no authority dashboard or push notification service. Review unreferenced uploads as part of storage maintenance.
+- **Operations:** provision staff through the trusted [membership template](supabase/admin/authority_membership.sql). The authority workspace publishes versioned status updates and public notes; citizen accounts cannot assign statuses. Push notifications are not implemented. Review unreferenced uploads as part of storage maintenance.
 
 Further context: [delivery evidence](docs/superpowers/2026-11-17-redesign-delivery.md), [design specification](docs/superpowers/specs/2026-11-17-civic-redesign-design.md), and [implementation plan](docs/superpowers/plans/2026-11-17-civic-redesign.md).
 

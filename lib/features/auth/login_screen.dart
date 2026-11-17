@@ -10,8 +10,12 @@ import 'auth_flow.dart';
 import 'auth_layout.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.authService = const AuthService()});
+  const LoginScreen(
+      {super.key,
+      this.authService = const AuthService(),
+      this.destination = '/dashboard'});
   final AuthService authService;
+  final String destination;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -63,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       TextInput.finishAutofillContext();
       Navigator.pushNamedAndRemoveUntil(
         context,
-        user.emailConfirmedAt != null ? '/dashboard' : '/verification',
+        user.emailConfirmedAt != null ? widget.destination : '/verification',
         (route) => false,
       );
     } catch (error) {
@@ -83,8 +87,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return AuthLayout(
       backEnabled: !_busy,
-      title: 'Welcome back',
-      description: 'Sign in to report an issue or pick up where you left off.',
+      title: widget.destination == '/authority'
+          ? 'Service-team sign in'
+          : 'Welcome back',
+      description: widget.destination == '/authority'
+          ? 'Use your assigned staff account to review reports and publish updates.'
+          : 'Sign in to report an issue or pick up where you left off.',
       children: [
         if (_error != null) AuthMessage(message: _error!),
         if (_needsVerification)
