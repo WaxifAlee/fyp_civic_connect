@@ -53,6 +53,15 @@ Pull down at the top of **Overview**, **Explore**, **My Reports**, or the **auth
 Report, account, service-note and comment drafts ask for confirmation before being discarded. Report details keep their close control above the scrolling discussion. An unconfirmed comment or service update stays open for a safe retry, preserving the original action. These protections last while the application is open; unsubmitted form and comment drafts are not restored after restarting it. Interrupted report submissions use the separate persistent recovery journal.
 
 <details>
+<summary>Draft protection on a phone</summary>
+
+<img src="docs/images/draft-protection-phone.png" alt="Report discussion asking whether to keep editing or discard an unposted comment draft" width="280">
+
+The same choice protects unsubmitted reports, account edits and unpublished service notes.
+
+</details>
+
+<details>
 <summary>Compact Explore and report discussion previews</summary>
 
 | Explore · compact filters | Report · community comments |
@@ -248,7 +257,7 @@ flutter build web --release --dart-define=PREVIEW_MODE=true
 flutter build apk --debug --dart-define-from-file=config/backend.local.json
 ```
 
-The [authority delivery record](docs/superpowers/2026-11-17-authority-delivery.md) covers the staff workspace, live concurrency and browser checks. The [Supabase delivery record](docs/superpowers/2026-11-17-supabase-delivery.md) records the original backend migration checks. The earlier [UI delivery record](docs/superpowers/2026-11-17-redesign-delivery.md) covers the interface redesign. Verification is recorded evidence for those revisions, not a guarantee for a different deployment.
+The [interaction delivery record](docs/superpowers/2026-11-17-interaction-delivery.md) covers refresh gestures, draft protection, keyboard behavior and the corresponding browser/emulator checks. The [authority delivery record](docs/superpowers/2026-11-17-authority-delivery.md) covers the staff workspace, live concurrency and browser checks. The [Supabase delivery record](docs/superpowers/2026-11-17-supabase-delivery.md) records the original backend migration checks. The earlier [UI delivery record](docs/superpowers/2026-11-17-redesign-delivery.md) covers the interface redesign. Verification is recorded evidence for those revisions, not a guarantee for a different deployment.
 
 Coverage includes report parsing and filters, photo validation, geographic boundaries, preview isolation, submission recovery, authentication errors, theme contrast, responsive navigation, and reduced motion. Widget checks include 375 px dark layouts at 2× text size. [SQL integration tests](supabase/tests) exercise database permissions and report transactions against the deployed schema.
 

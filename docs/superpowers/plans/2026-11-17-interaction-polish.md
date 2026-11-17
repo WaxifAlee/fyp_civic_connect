@@ -29,8 +29,9 @@
 - [x] Add failing behavioral tests for refresh on short content, retained reports on reload/error, request overlap and navigation/keyboard improvements.
 - [x] Implement shared scroll/refresh behavior and controller safety, then run targeted tests.
 - [x] Implement the remaining audited search/detail/form improvements with meaningful regression tests.
-- [ ] Run all Flutter tests, analyzer, release web and Android debug builds; verify browser and emulator interactions.
-- [ ] Independently review, resolve findings, update README and delivery evidence, commit and push main; leave the application available for testing.
+- [x] Run all Flutter tests, analyzer, release web and Android debug builds; verify browser and emulator interactions.
+- [x] Independently review, resolve findings, update README and delivery evidence; commit changes and leave the application available for testing.
+- [ ] Push main and verify its remote revision.
 
 ## Execution ledger
 
@@ -41,3 +42,7 @@
 - Red evidence: overlapping refreshes made two requests; delayed reads restored deleted reports and stale support; report/account navigation discarded drafts; detail Close scrolled offscreen; invalid signup left the first field unfocused; root draft dismissal omitted the platform exit. New regressions failed before their fixes.
 - Green evidence: complete Flutter suite 202 tests passed; static analysis reports no issues. Small phone, enlarged text and keyboard-inset discussion tests passed.
 - No backend or migration changes are required. Existing submission journals and mutation request UUID protocols remain intact.
+- Independent reviewer Tesla first requested changes at `557c44e`: retained authority pages must match all query criteria; changed memberships must notify before the queue completes; reattached discussion fields must show their retained draft. All findings were reproduced red, fixed and regression-tested. The reverse vote/refresh ordering was also reproduced and fixed.
+- Final source review at `3eeb6b4`: **PASS**, no remaining concrete blockers. Review was read-only with inherited model identity unavailable and requested high reasoning effort. Actual browser/emulator validation was performed by the resident.
+- Final verification: **210 tests pass**, analyzer clean, configured release web and Android debug builds succeed. Browser sample-data checks pass at phone and desktop sizes with zero page errors. Native actual-Supabase refresh retains `MC00005`; report/comment Keep editing and deliberate discard pass. Final APK is installed/running and the web server returns HTTP 200 on port 8080.
+- README screenshots use sample data. The native synthetic unposted report/comment drafts were discarded; no hosted application data changed. See `docs/superpowers/2026-11-17-interaction-delivery.md` for evidence and limits.
