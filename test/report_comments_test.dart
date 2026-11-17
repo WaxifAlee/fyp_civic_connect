@@ -66,6 +66,8 @@ void main() {
         service.add('report', ' \n ', 'id'), throwsA(isA<CommentsException>()));
     await expectLater(service.add('report', 'x' * 1001, 'id'),
         throwsA(isA<CommentsException>()));
+    await expectLater(service.add('report', 'Pasted\u0000control', 'id'),
+        throwsA(isA<CommentsException>()));
     expect(b.calls, isEmpty);
     final posted = await service.add('report', ' ${'🌳' * 1000} ', 'id');
     expect(posted.body.runes.length, 1000);

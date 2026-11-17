@@ -105,6 +105,10 @@ class ReportCommentsService {
       throw const CommentsException(
           'Write a comment between 1 and 1,000 characters.');
     }
+    if (canonical.contains('\u0000')) {
+      throw const CommentsException(
+          'Remove unsupported control characters and try again.');
+    }
     if (isPreview) return PreviewComments.add(reportId, canonical, requestId);
     final raw = await _call(
         'add_report_comment',

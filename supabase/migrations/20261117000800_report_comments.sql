@@ -16,13 +16,15 @@ CREATE INDEX report_comments_page_idx
   ON civic_private.report_comments(report_id,created_at DESC,id DESC)
   WHERE deleted_at IS NULL;
 CREATE INDEX report_comments_author_idx ON civic_private.report_comments(author_id);
+-- Cascades also delete tombstones, which the active-page index excludes.
+CREATE INDEX report_comments_report_idx ON civic_private.report_comments(report_id);
 ALTER TABLE civic_private.report_comments ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE civic_private.report_comments FROM PUBLIC,anon,authenticated,service_role;
 
 -- Matches Dart String.trim's Unicode whitespace, including NBSP and BOM.
 CREATE FUNCTION civic_private.canonical_comment(p_body text) RETURNS text
 LANGUAGE sql IMMUTABLE SET search_path = '' AS $$
-  SELECT btrim(p_body,E' \t\n\r\v\f'||U&'\0085\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF');
+  SELECT btrim(p_body,E' \t\n\r\f'||U&'\000B\0085\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF');
 $$;
 REVOKE ALL ON FUNCTION civic_private.canonical_comment(text) FROM PUBLIC,anon,authenticated,service_role;
 
@@ -67,10 +69,12 @@ BEGIN
   END IF;
   -- Shared by add/remove; identical simultaneous retries become one comment.
   PERFORM pg_advisory_xact_lock(hashtextextended('civic-comment:'||p_request_id::text,0));
-  PERFORM 1 FROM public.reports WHERE id=p_report_id FOR KEY SHARE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Report unavailable' USING ERRCODE='42501'; END IF;
+  -- Account deletion locks the profile before cascading owned reports.
+  -- Follow that order to avoid report/profile lock inversion.
   SELECT full_name INTO display_name FROM public.profiles WHERE id=uid FOR KEY SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Verified citizen session required' USING ERRCODE='42501'; END IF;
+  PERFORM 1 FROM public.reports WHERE id=p_report_id FOR KEY SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Report unavailable' USING ERRCODE='42501'; END IF;
   SELECT * INTO existing FROM civic_private.report_comments WHERE id=p_request_id FOR UPDATE;
   IF FOUND THEN
     IF (existing.author_id,existing.report_id,existing.body_digest) IS DISTINCT FROM

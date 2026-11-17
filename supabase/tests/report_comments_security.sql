@@ -14,6 +14,9 @@ LANGUAGE plpgsql AS $$ BEGIN
  RAISE EXCEPTION 'FAIL: forbidden statement accepted: %',statement;
 END $$;
 SELECT pg_temp.check_true(to_regprocedure('public.add_report_comment(uuid,text,uuid)') IS NOT NULL,'comment contract exists');
+SELECT pg_temp.check_true(civic_private.canonical_comment('very useful')='very useful'
+ AND civic_private.canonical_comment('v')='v'
+ AND civic_private.canonical_comment(chr(11))='','canonical trim preserves v and removes vertical tab');
 INSERT INTO auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data)
 SELECT ('a8000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,
  'comments-sql-'||n||'@example.invalid',CASE WHEN n<3 THEN now() END,

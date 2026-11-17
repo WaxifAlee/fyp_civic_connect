@@ -147,13 +147,16 @@ class ReportCard extends StatelessWidget {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        builder: (context) => FractionallySizedBox(
-            heightFactor: .92,
-            child: ReportDetails(
-                report: report,
-                currentUserId: currentUserId,
-                onSupport: onSupport,
-                onDelete: onDelete)));
+        builder: (context) => Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom),
+            child: FractionallySizedBox(
+                heightFactor: .92,
+                child: ReportDetails(
+                    report: report,
+                    currentUserId: currentUserId,
+                    onSupport: onSupport,
+                    onDelete: onDelete))));
   }
 }
 
