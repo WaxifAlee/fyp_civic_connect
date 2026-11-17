@@ -24,6 +24,15 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array><string>io.supabase.civicconnect</string></array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a photo to show the local issue you are reporting.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

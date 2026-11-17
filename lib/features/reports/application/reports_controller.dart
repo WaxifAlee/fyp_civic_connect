@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../../app/app_session.dart';
 import '../../../models/report.dart';
 import '../../../services/report_service.dart';
 import '../data/preview_reports.dart';
 
 class ReportsController extends ChangeNotifier {
-  ReportsController(
-      {this.mine = false, ReportService? service, String? Function()? userId})
-      : _service = service ?? ReportService(),
+  ReportsController({
+    this.mine = false,
+    ReportService? service,
+    String? Function()? userId,
+  })  : _service = service ?? ReportService(),
         _userId = userId;
   final bool mine;
   final ReportService _service;
@@ -22,12 +24,15 @@ class ReportsController extends ChangeNotifier {
       ? _userId()
       : AppSession.instance.isPreview
           ? PreviewReports.citizenId
-          : FirebaseAuth.instance.currentUser?.uid;
+          : _serviceUserId;
+
+  String? get _serviceUserId => ReportBackend().verifiedUserId;
 
   Future<void> load() async {
     loading = true;
     error = null;
     _notify();
+    final uid = currentUserId;
     try {
       final items = AppSession.instance.isPreview
           ? PreviewReports.reports
@@ -36,10 +41,12 @@ class ReportsController extends ChangeNotifier {
           : mine
               ? await _service.fetchReportsByCurrentUser()
               : await _service.fetchAllReports();
-      if (_disposed) return;
+      if (_disposed || currentUserId != uid) return;
       reports = items
-        ..sort((a, b) =>
-            (b.date ?? DateTime(1970)).compareTo(a.date ?? DateTime(1970)));
+        ..sort(
+          (a, b) =>
+              (b.date ?? DateTime(1970)).compareTo(a.date ?? DateTime(1970)),
+        );
     } catch (_) {
       if (_disposed) return;
       error =
@@ -62,9 +69,9 @@ class ReportsController extends ChangeNotifier {
       final committed = AppSession.instance.isPreview
           ? null
           : await _service.toggleUpvote(id);
-      if (_disposed) return true;
+      if (_disposed || currentUserId != uid) return false;
       if (committed != null) {
-        report.upvotedBy = committed.voters;
+        report.upvotedBy = committed.voters.contains(uid) ? [uid] : [];
         report.upvotes = committed.count;
         return true;
       }
@@ -72,8 +79,10 @@ class ReportsController extends ChangeNotifier {
       final voted = voters.contains(uid);
       voted ? voters.remove(uid) : voters.add(uid);
       report.upvotedBy = voters;
-      report.upvotes =
-          ((report.upvotes ?? 0) + (voted ? -1 : 1)).clamp(0, 1 << 31);
+      report.upvotes = ((report.upvotes ?? 0) + (voted ? -1 : 1)).clamp(
+        0,
+        1 << 31,
+      );
       return true;
     } catch (_) {
       return false;
@@ -90,6 +99,7 @@ class ReportsController extends ChangeNotifier {
         report.reportedBy != currentUserId) {
       return false;
     }
+    final uid = currentUserId;
     busyReports.add(id);
     _notify();
     try {
@@ -98,7 +108,8 @@ class ReportsController extends ChangeNotifier {
       } else {
         await _service.deleteReport(id, report.mediaRefrence);
       }
-      if (!_disposed) reports.removeWhere((item) => item.id == id);
+      if (_disposed || currentUserId != uid) return false;
+      reports.removeWhere((item) => item.id == id);
       return true;
     } catch (_) {
       return false;

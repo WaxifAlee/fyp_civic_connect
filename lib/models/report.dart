@@ -1,6 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-/// The vote state returned by the committed Firestore transaction.
+/// The vote state returned by the committed support RPC.
 class ReportVote {
   const ReportVote({required this.count, required this.voters});
   final int count;
@@ -24,21 +22,22 @@ class Report {
   int? upvotes;
   List<String>? upvotedBy;
 
-  Report(
-      {this.category,
-      this.description,
-      this.location,
-      this.mediaRefrence = const [],
-      this.reportedBy,
-      this.title,
-      this.status,
-      this.profilePicture,
-      this.reporterName,
-      this.date,
-      this.id,
-      this.reportCode,
-      this.upvotedBy,
-      this.upvotes = 0});
+  Report({
+    this.category,
+    this.description,
+    this.location,
+    this.mediaRefrence = const [],
+    this.reportedBy,
+    this.title,
+    this.status,
+    this.profilePicture,
+    this.reporterName,
+    this.date,
+    this.id,
+    this.reportCode,
+    this.upvotedBy,
+    this.upvotes = 0,
+  });
 
   factory Report.fromMap(Map<String, dynamic> map) {
     final rawDate = map['timestamp'] ?? map['date'];
@@ -54,11 +53,11 @@ class Report {
       reporterName: _string(map['reporterName']),
       id: _string(map['id']),
       reportCode: _string(map['reportCode']),
-      date: rawDate is Timestamp
-          ? rawDate.toDate()
-          : rawDate is DateTime
-              ? rawDate
-              : DateTime.tryParse(rawDate?.toString() ?? ''),
+      date: rawDate is DateTime
+          ? rawDate
+          : rawDate is String
+              ? DateTime.tryParse(rawDate)
+              : null,
       upvotedBy: _strings(map['upvotedBy']),
       upvotes: map['upvotes'] is num
           ? (map['upvotes'] as num).toInt().clamp(0, 1 << 31)

@@ -11,10 +11,6 @@ class Validators {
   static final RegExp _emailRegex =
       RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
 
-  static final RegExp _nameRegex =
-      RegExp(r'^[a-zA-Z\s]{3,100}$' // Only letters and spaces, 3-100 chars
-          );
-
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Password is required';
@@ -67,8 +63,10 @@ class Validators {
     if (value == null || value.isEmpty) {
       return 'Name is required';
     }
-    if (!_nameRegex.hasMatch(value)) {
-      return 'Name can only contain letters and must be under 100 characters';
+    if (value.trim().length < 3 ||
+        value.trim().length > 100 ||
+        RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
+      return 'Use a name between 3 and 100 characters without line breaks';
     }
     return null;
   }

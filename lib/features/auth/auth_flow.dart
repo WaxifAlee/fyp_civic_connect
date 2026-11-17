@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 
 class AccountSetupException implements Exception {
@@ -7,74 +8,79 @@ class AccountSetupException implements Exception {
   final String message;
 }
 
-/// Finishes pending registration atomically. This is shared by startup, login,
-/// and verification so verifying in another browser does not strand an account.
+/// The auth.users trigger creates profiles atomically during signup.
 Future<void> prepareVerifiedCitizen(User user) async {
-  if (!user.emailVerified) {
+  if (user.emailConfirmedAt == null) {
     throw const AccountSetupException('Verify your email to continue.');
   }
-  await user.getIdToken(true);
-  final firestore = FirebaseFirestore.instance;
-  final pending = firestore.collection('pending_users').doc(user.uid);
-  final active = firestore.collection('users').doc(user.uid);
-  await firestore.runTransaction<void>((transaction) async {
-    final pendingSnapshot = await transaction.get(pending);
-    final activeSnapshot = await transaction.get(active);
-    if (pendingSnapshot.exists) {
-      final data = Map<String, dynamic>.from(pendingSnapshot.data()!);
-      // Legacy registrations stored this credential. Never propagate it.
-      data.remove('confirm_password');
-      data['uid'] = user.uid;
-      data['email_verified'] = true;
-      data['updated_at'] = FieldValue.serverTimestamp();
-      transaction.set(active, data, SetOptions(merge: true));
-      transaction.delete(pending);
-    } else if (!activeSnapshot.exists) {
-      throw const AccountSetupException(
-        'Your sign-in exists, but your citizen profile is missing. '
-        'Return to registration if you still have it open, or try again later.',
-      );
-    }
-  });
-  globalCitizenUser = null;
-  await fetchAndSetCitizenUser(user.uid);
+  await fetchAndSetCitizenUser(user.id);
 }
 
 String friendlyAuthError(Object error) {
+  const connection =
+      'We couldn’t connect. Check your internet connection and try again.';
   if (error is AccountSetupException) return error.message;
-  if (error is FirebaseAuthException) {
-    switch (error.code.replaceFirst('auth/', '')) {
-      case 'invalid-credential':
-      case 'invalid-login-credentials':
-      case 'wrong-password':
-      case 'user-not-found':
+  if (error is TimeoutException || error is AuthRetryableFetchException) {
+    return connection;
+  }
+  if (error is AuthSessionMissingException) {
+    return 'Your session ended. Open a fresh email link or sign in again.';
+  }
+  if (error is AuthException) {
+    switch (error.code) {
+      case 'invalid_credentials':
         return 'We couldn’t sign you in with those details. Check your email and password.';
-      case 'invalid-email':
-        return 'Check your email address and try again.';
-      case 'email-already-in-use':
-        return 'This email is already in use. Sign in or reset your password.';
-      case 'weak-password':
+      case 'email_address_invalid':
+      case 'validation_failed':
+        return 'Check your email address and registration details and try again.';
+      case 'email_not_confirmed':
+        return 'Verify your email using the link in your inbox, then sign in.';
+      case 'user_already_exists':
+      case 'email_exists':
+        return 'Check your inbox for any confirmation link, or sign in to your existing account.';
+      case 'weak_password':
         return 'Choose a stronger password with at least 8 characters.';
-      case 'user-disabled':
+      case 'same_password':
+        return 'Choose a password you haven’t used for this account.';
+      case 'user_banned':
         return 'This account is unavailable. Contact the service administrator.';
-      case 'too-many-requests':
+      case 'over_request_rate_limit':
+      case 'over_email_send_rate_limit':
+      case 'over_sms_send_rate_limit':
         return 'There have been too many attempts. Please wait before trying again.';
-      case 'network-request-failed':
-        return 'We couldn’t connect. Check your internet connection and try again.';
-      case 'requires-recent-login':
-        return 'Please sign in again to continue.';
-      case 'operation-not-allowed':
+      case 'session_not_found':
+      case 'session_expired':
+      case 'refresh_token_not_found':
+      case 'refresh_token_already_used':
+      case 'otp_expired':
+      case 'bad_jwt':
+        return 'Your session or email link expired. Request a fresh link or sign in again.';
+      case 'signup_disabled':
+      case 'email_provider_disabled':
         return 'Email sign-in is currently unavailable. Please try again later.';
+      case 'unexpected_failure':
+        return 'Your account details couldn’t be saved. Check your details or try again later.';
+    }
+    if (error.statusCode == '429') {
+      return 'There have been too many attempts. Please wait before trying again.';
+    }
+    if (error.statusCode == '0' || error.statusCode == '503') {
+      return connection;
     }
   }
-  if (error is FirebaseException) {
-    switch (error.code) {
-      case 'unavailable':
-      case 'deadline-exceeded':
-        return 'We couldn’t connect. Check your connection and try again.';
-      case 'permission-denied':
-        return 'Your account details couldn’t be saved or loaded. Please try again later.';
+  if (error is PostgrestException) {
+    if (error.code == 'PGRST116') {
+      return 'Your sign-in exists, but your citizen profile is missing. '
+          'Try again later, or contact the service administrator.';
     }
+    return 'Your account details couldn’t be saved or loaded. Check your details or try again later.';
+  }
+  // Browser, HTTP and socket failures have different types on each platform.
+  final kind = error.runtimeType.toString();
+  if (kind == 'SocketException' ||
+      kind == 'ClientException' ||
+      kind == 'HandshakeException') {
+    return connection;
   }
   return 'Something interrupted this step. Please try again.';
 }

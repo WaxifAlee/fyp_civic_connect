@@ -1,16 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/app/app_shell.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
 import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
+import 'package:fyp_civic_connect/services/citizen_account_service.dart';
+import 'package:fyp_civic_connect/services/supabase_client.dart';
+import 'package:fyp_civic_connect/services/storage_paths.dart';
+import 'package:fyp_civic_connect/features/reports/data/report_submission_service.dart';
 import 'package:fyp_civic_connect/utils/validators.dart';
 
 class Profile extends StatefulWidget {
-  const Profile({super.key});
+  const Profile({super.key, this.account = const CitizenAccountService()});
+  final CitizenAccountService account;
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -26,6 +31,7 @@ class _ProfileState extends State<Profile> {
   bool _editing = false;
   bool _saving = false;
   bool _signingOut = false;
+  bool _uploadingPhoto = false;
   String? _loadError;
   String? _saveError;
 
@@ -65,25 +71,17 @@ class _ProfileState extends State<Profile> {
           joinDate: null,
         );
       } else {
-        if (Firebase.apps.isEmpty) {
-          throw StateError(
-            'Account services are unavailable. Try again later.',
-          );
-        }
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) {
+        final userId = widget.account.userId;
+        if (userId == null) {
           throw StateError('Sign in to view your account details.');
         }
-        if (globalCitizenUser == null || globalCitizenUser?.uid != user.uid) {
-          await fetchAndSetCitizenUser(user.uid);
-        }
-        if (!mounted || _isPreview) return;
-        _citizen = globalCitizenUser;
+        final profile = await widget.account.load();
+        if (!mounted || _isPreview || widget.account.userId != userId) return;
+        _citizen = profile;
         if (_citizen == null) {
           throw StateError('Your account details could not be loaded.');
         }
-        // Older records use the document ID without storing a uid field.
-        _citizen!.uid = user.uid;
+        _citizen!.uid = userId;
       }
       if (!mounted) return;
       _resetFields();
@@ -105,8 +103,94 @@ class _ProfileState extends State<Profile> {
     _location.text = _citizen?.location ?? '';
   }
 
+  Future<void> _changePhoto() async {
+    if (_isPreview || _uploadingPhoto || _saving || _signingOut || _editing) {
+      return;
+    }
+    final user = SupabaseService.client.auth.currentUser;
+    if (user == null || user.id != _citizen?.uid) return;
+    final previousPath = ownedAvatarStoragePath(
+        _citizen?.displayPicture, SupabaseService.url, user.id);
+    setState(() => _uploadingPhoto = true);
+    String? uploadedPath;
+    var profileWriteStarted = false;
+    try {
+      final file = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (file == null || !mounted || _isPreview) return;
+      if (await file.length() > 5 * 1024 * 1024) {
+        throw const ReportSubmissionException(
+            'Choose a profile photo of 5 MB or smaller.');
+      }
+      final photo = await ReportSubmissionService.readPhoto(file);
+      if (!mounted ||
+          _isPreview ||
+          SupabaseService.client.auth.currentUser?.id != user.id) {
+        return;
+      }
+      uploadedPath = '${user.id}/${const Uuid().v4()}.${photo.extension}';
+      final storage = SupabaseService.client.storage.from('profile-pictures');
+      await storage.uploadBinary(uploadedPath, photo.bytes,
+          fileOptions: FileOptions(contentType: photo.contentType));
+      if (!mounted ||
+          _isPreview ||
+          SupabaseService.client.auth.currentUser?.id != user.id) {
+        return;
+      }
+      profileWriteStarted = true;
+      await updateCitizenAvatar(userId: user.id, profilePicture: uploadedPath);
+      if (!mounted ||
+          _isPreview ||
+          SupabaseService.client.auth.currentUser?.id != user.id) {
+        return;
+      }
+      setState(() => _citizen = globalCitizenUser);
+      if (previousPath != null && previousPath != uploadedPath) {
+        try {
+          await storage.remove([previousPath]);
+        } catch (_) {
+          // The new reference is committed; old-image cleanup can be retried later.
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Your profile photo has been updated.')));
+    } catch (error) {
+      // Once the profile write starts, a lost response may still have saved it.
+      // Keep that object rather than leaving a committed profile with no image.
+      if (uploadedPath != null &&
+          !profileWriteStarted &&
+          SupabaseService.client.auth.currentUser?.id == user.id) {
+        try {
+          await SupabaseService.client.storage
+              .from('profile-pictures')
+              .remove([uploadedPath]);
+        } catch (_) {}
+      }
+      if (mounted) {
+        if (profileWriteStarted) _invalidateProfile();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(error is ReportSubmissionException
+                ? error.message
+                : 'We couldn’t confirm the photo update. Refresh your account before trying again.')));
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  void _invalidateProfile() {
+    globalCitizenUser = null;
+    _citizen = null;
+    _editing = false;
+    _loadError =
+        'The account update could not be confirmed. Refresh your account '
+        'to load the saved details before making more changes.';
+  }
+
   Future<void> _saveProfile() async {
-    if (_saving || !_formKey.currentState!.validate()) return;
+    if (_saving || _uploadingPhoto || !_formKey.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     final name = _name.text.trim();
     final phone = _phone.text.trim();
@@ -117,29 +201,13 @@ class _ProfileState extends State<Profile> {
     });
     try {
       if (!_isPreview) {
-        if (Firebase.apps.isEmpty) {
-          throw StateError(
-            'Account services are unavailable. Try again later.',
-          );
-        }
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null || user.uid != _citizen?.uid) {
+        final userId = widget.account.userId;
+        if (userId == null || userId != _citizen?.uid) {
           throw StateError('Your session has ended. Sign in again to save.');
         }
-        final users = FirebaseFirestore.instance.collection('users');
-        final matches = await users.where('phone', isEqualTo: phone).get();
-        if (!mounted || _isPreview) return;
-        if (matches.docs.any((document) => document.id != user.uid)) {
-          throw StateError(
-            'This phone number is already linked to an account.',
-          );
-        }
-        await users.doc(user.uid).update({
-          'full_name': name,
-          'phone': phone,
-          'locations': location,
-          'updated_at': FieldValue.serverTimestamp(),
-        });
+        await widget.account
+            .save(fullName: name, phone: phone, location: location);
+        if (!mounted || _isPreview || widget.account.userId != userId) return;
       }
       if (!mounted) return;
       _citizen!
@@ -157,23 +225,27 @@ class _ProfileState extends State<Profile> {
           ),
         ),
       );
-    } on StateError catch (error) {
-      if (mounted) setState(() => _saveError = error.message.toString());
-    } on FirebaseException catch (error) {
+    } on StateError {
+      if (mounted) setState(_invalidateProfile);
+    } on PostgrestException catch (error) {
       if (mounted) {
         setState(() {
-          _saveError = error.code == 'permission-denied'
-              ? 'You don’t have permission to update this account. Sign in '
-                  'again and retry.'
-              : 'We couldn’t save your changes. Check your connection and '
-                  'try again.';
+          if (!['23505', '23514', '42501'].contains(error.code)) {
+            _invalidateProfile();
+            return;
+          }
+          _saveError = error.code == '23505'
+              ? 'This phone number is already linked to an account.'
+              : error.code == '42501'
+                  ? 'You don’t have permission to update this account. Sign in '
+                      'again and retry.'
+                  : 'We couldn’t save your changes. Check your connection and '
+                      'try again.';
         });
       }
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _saveError = 'Your changes could not be saved. Try again.',
-        );
+        setState(_invalidateProfile);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -210,8 +282,8 @@ class _ProfileState extends State<Profile> {
     try {
       if (preview) {
         AppSession.instance.leavePreview();
-      } else if (Firebase.apps.isNotEmpty) {
-        await FirebaseAuth.instance.signOut();
+      } else if (SupabaseService.isConfigured) {
+        await SupabaseService.client.auth.signOut();
       }
       globalCitizenUser = null;
       if (!mounted) return;
@@ -362,7 +434,9 @@ class _ProfileState extends State<Profile> {
                   label: _isPreview ? 'Leave preview' : 'Sign out',
                   icon: Icons.logout_outlined,
                   isLoading: _signingOut,
-                  onPressed: _saving || _signingOut ? null : _confirmSignOut,
+                  onPressed: _saving || _signingOut || _uploadingPhoto
+                      ? null
+                      : _confirmSignOut,
                 ),
               ],
             ),
@@ -388,6 +462,22 @@ class _ProfileState extends State<Profile> {
             color: theme.colorScheme.primary,
           ),
         ),
+        if (!_isPreview) ...[
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed:
+                _uploadingPhoto || _saving || _editing ? null : _changePhoto,
+            icon: _uploadingPhoto
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.add_a_photo_outlined, size: 20),
+            label: Text(_uploadingPhoto ? 'Updating photo…' : 'Change photo'),
+          ),
+          Text('JPG, PNG or WebP · Up to 5 MB',
+              style: theme.textTheme.bodySmall),
+        ],
       ],
     );
     return AppPanel(
@@ -546,7 +636,7 @@ class _ProfileState extends State<Profile> {
             const SizedBox(height: 8),
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
-              onPressed: _signingOut
+              onPressed: _signingOut || _uploadingPhoto
                   ? null
                   : () => setState(() {
                         _resetFields();

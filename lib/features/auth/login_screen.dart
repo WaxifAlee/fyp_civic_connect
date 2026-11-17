@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
@@ -22,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _password = TextEditingController();
   bool _busy = false;
   String? _error;
+  bool _needsVerification = false;
 
   @override
   void dispose() {
@@ -31,29 +33,47 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    if (_busy || !_formKey.currentState!.validate()) return;
+    if (_busy || !_formKey.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() {
       _busy = true;
       _error = null;
+      _needsVerification = false;
     });
+    final wasPreview = AppSession.instance.isPreview;
     try {
       final credential =
           await widget.authService.signIn(_email.text.trim(), _password.text);
-      if (!mounted) return;
+      if (!mounted || AppSession.instance.isPreview != wasPreview) {
+        return;
+      }
       final user = credential.user;
-      if (user == null) throw StateError('Missing authenticated user');
+      if (user == null || widget.authService.currentUser?.id != user.id) {
+        throw StateError('Missing authenticated user');
+      }
       AppSession.instance.leavePreview();
-      if (user.emailVerified) await prepareVerifiedCitizen(user);
-      if (!mounted) return;
+      if (user.emailConfirmedAt != null) await prepareVerifiedCitizen(user);
+      if (!mounted ||
+          AppSession.instance.isPreview ||
+          widget.authService.currentUser?.id != user.id) {
+        return;
+      }
       TextInput.finishAutofillContext();
       Navigator.pushNamedAndRemoveUntil(
         context,
-        user.emailVerified ? '/dashboard' : '/verification',
+        user.emailConfirmedAt != null ? '/dashboard' : '/verification',
         (route) => false,
       );
     } catch (error) {
-      if (mounted) setState(() => _error = friendlyAuthError(error));
+      if (mounted) {
+        setState(() {
+          _error = friendlyAuthError(error);
+          _needsVerification =
+              error is AuthException && error.code == 'email_not_confirmed';
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -67,6 +87,14 @@ class _LoginScreenState extends State<LoginScreen> {
       description: 'Sign in to report an issue or pick up where you left off.',
       children: [
         if (_error != null) AuthMessage(message: _error!),
+        if (_needsVerification)
+          TextButton(
+            style: authTextButtonStyle(),
+            onPressed: _busy
+                ? null
+                : () => Navigator.pushNamed(context, '/verification'),
+            child: const Text('Verify email / resend link'),
+          ),
         AutofillGroup(
           child: Form(
             key: _formKey,

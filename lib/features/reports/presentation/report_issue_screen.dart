@@ -11,7 +11,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ReportIssueScreen extends StatefulWidget {
-  const ReportIssueScreen({super.key});
+  const ReportIssueScreen({super.key, this.submission});
+
+  final ReportSubmissionService? submission;
 
   @override
   State<ReportIssueScreen> createState() => _ReportIssueScreenState();
@@ -25,7 +27,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   final _title = TextEditingController();
   final _description = TextEditingController();
   final _locationText = TextEditingController();
-  final _submission = ReportSubmissionService();
+  late final _submission = widget.submission ?? ReportSubmissionService();
   List<XFile> _images = const [];
   String? _category;
   LatLng? _location;
@@ -36,6 +38,10 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   double _progress = 0;
   String _progressMessage = 'Preparing your report…';
   ReportSubmissionResult? _result;
+  int? _pendingCount;
+  bool _recovering = false;
+  String? _recoveryMessage;
+  String? _recoveryError;
 
   static const _categoryDescriptions = <String, String>{
     'Municipal Corportaion': 'Waste, drainage & sanitation',
@@ -46,6 +52,112 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   };
 
   bool get _preview => AppSession.instance.isPreview;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshPending();
+  }
+
+  Future<void> _refreshPending() async {
+    try {
+      final count = await _submission.pendingSubmissionCount();
+      if (mounted) {
+        setState(() {
+          _pendingCount = count;
+          _recoveryError = null;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _recoveryError = error is ReportSubmissionException
+              ? error.message
+              : 'Saved submissions could not be checked. Please retry.';
+        });
+      }
+    }
+  }
+
+  Future<void> _recoverSaved() async {
+    if (_recovering || _submitting) return;
+    setState(() {
+      _recovering = true;
+      _recoveryError = null;
+      _recoveryMessage = null;
+    });
+    try {
+      final recovered = await _submission.recoverPending();
+      if (!mounted) return;
+      final message = recovered == null
+          ? 'No saved submissions remain. Your current draft is still here.'
+          : 'Earlier report submitted as ${recovered.reportCode}. '
+              'Your current draft is still here.';
+      setState(() => _recoveryMessage = message);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } on DeletedReportSubmissionException catch (error) {
+      if (mounted) setState(() => _recoveryMessage = error.message);
+    } on ReportSubmissionException catch (error) {
+      if (mounted) setState(() => _recoveryError = error.message);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _recoveryError =
+            'Saved submissions could not be checked. Please retry.');
+      }
+    } finally {
+      // Refresh the count without clearing feedback from the recovery attempt.
+      final error = _recoveryError;
+      await _refreshPending();
+      if (mounted) {
+        setState(() {
+          _recoveryError ??= error;
+          _recovering = false;
+        });
+      }
+    }
+  }
+
+  Widget _savedSubmissions() {
+    final count = _pendingCount;
+    return AppPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeading(
+            title: 'Saved submissions',
+            subtitle:
+                'Check an earlier report while keeping your current draft.',
+          ),
+          const SizedBox(height: 16),
+          if (count == null && _recoveryError == null)
+            const Text('Checking saved submissions…'),
+          if (count != null && count > 0)
+            Text(
+                '$count saved ${count == 1 ? 'submission' : 'submissions'} to check.'),
+          if (_recoveryMessage != null)
+            Semantics(liveRegion: true, child: Text(_recoveryMessage!)),
+          if (_recoveryError != null)
+            Semantics(
+              liveRegion: true,
+              child: Text(_recoveryError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
+          if ((count ?? 0) > 0 || _recoveryError != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: _submitting || _recovering ? null : _recoverSaved,
+              icon: const Icon(Icons.restore_outlined),
+              label: Text(_recovering
+                  ? 'Checking saved submission…'
+                  : 'Recover saved submission'),
+              style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -96,7 +208,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   }
 
   Future<void> _submit() async {
-    if (_submitting || _readingPhotos) return;
+    if (_submitting || _readingPhotos || _recovering) return;
     FocusScope.of(context).unfocus();
     setState(() {
       _validate = true;
@@ -127,7 +239,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
     try {
       final ReportSubmissionResult result;
       if (preview) {
-        // Deliberately local: no Firebase, Supabase, counters or production ID.
+        // Deliberately local: no Supabase, counters or production ID.
         // Re-read the selected bytes to catch expired or removed local files.
         for (final image in _images) {
           await ReportSubmissionService.readPhoto(image);
@@ -168,6 +280,7 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
+      await _refreshPending();
     }
   }
 
@@ -536,6 +649,12 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                       'administrator to enable photo uploads before submitting.',
                 ),
               ],
+              if (!_preview &&
+                  (_pendingCount == null ||
+                      _pendingCount! > 0 ||
+                      _recoveryMessage != null ||
+                      _recoveryError != null))
+                _savedSubmissions(),
               Form(
                 key: _formKey,
                 autovalidateMode: _validate
@@ -592,7 +711,9 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
                           ? Icons.visibility_outlined
                           : Icons.send_outlined,
                       isLoading: _submitting,
-                      onPressed: _submitting || _readingPhotos ? null : _submit,
+                      onPressed: _submitting || _readingPhotos || _recovering
+                          ? null
+                          : _submit,
                     ),
                     const SizedBox(height: 24),
                   ],

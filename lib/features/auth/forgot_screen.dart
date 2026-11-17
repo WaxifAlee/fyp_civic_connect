@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
@@ -29,24 +28,18 @@ class _ForgotScreenState extends State<ForgotScreen> {
   }
 
   Future<void> _sendReset() async {
-    if (_busy || !_formKey.currentState!.validate()) return;
+    if (_busy || !_formKey.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      // Do not query sign-in methods or Firestore: the response must not reveal
-      // whether an address has an account, including on older Firebase projects.
+      // Keep account existence private for every successful reset request.
       await widget.authService.sendPasswordReset(_email.text.trim());
       if (mounted) setState(() => _sent = true);
-    } on FirebaseAuthException catch (error) {
-      if (!mounted) return;
-      if (error.code.replaceFirst('auth/', '') == 'user-not-found') {
-        setState(() => _sent = true);
-      } else {
-        setState(() => _error = friendlyAuthError(error));
-      }
     } catch (error) {
       if (mounted) setState(() => _error = friendlyAuthError(error));
     } finally {

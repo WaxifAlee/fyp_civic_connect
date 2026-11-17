@@ -1,5 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../core/widgets/civic_widgets.dart';
@@ -8,6 +6,7 @@ import '../features/account/notifications_screen.dart';
 import '../features/account/profile.dart';
 import '../features/auth/forgot_screen.dart';
 import '../features/auth/login_screen.dart';
+import '../features/auth/recovery_screen.dart';
 import '../features/auth/signup_screen.dart';
 import '../features/auth/splash_screen.dart';
 import '../features/auth/verification_waiting_screen.dart';
@@ -15,28 +14,80 @@ import '../features/auth/welcome_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/reports/presentation/report_feed_screen.dart';
 import '../features/reports/presentation/report_issue_screen.dart';
-import '../firebase_options.dart';
 import '../services/supabase_client.dart';
+import '../services/user_service.dart';
 import 'app_session.dart';
 
-class CivicConnectApp extends StatelessWidget {
+class CivicConnectApp extends StatefulWidget {
   const CivicConnectApp({super.key, this.initialRoute});
   final String? initialRoute;
+
+  @override
+  State<CivicConnectApp> createState() => _CivicConnectAppState();
+}
+
+class _CivicConnectAppState extends State<CivicConnectApp> {
+  final _navigator = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    SupabaseService.navigation.addListener(_onAuthNavigation);
+    _onAuthNavigation();
+  }
+
+  @override
+  void dispose() {
+    SupabaseService.navigation.removeListener(_onAuthNavigation);
+    super.dispose();
+  }
+
+  void _onAuthNavigation() {
+    final event = SupabaseService.navigation.value;
+    if (event == null) return;
+    SupabaseService.navigation.value = null;
+    if (AppSession.instance.isPreview && event == AuthNavigation.signedOut) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      globalCitizenUser = null;
+      AppSession.instance.leavePreview();
+      final route = switch (event) {
+        AuthNavigation.recovery => '/recover_password',
+        AuthNavigation.confirmed =>
+          SupabaseService.recoveryActive ? '/recover_password' : '/',
+        AuthNavigation.signedOut || AuthNavigation.failed => '/login',
+      };
+      _navigator.currentState?.pushNamedAndRemoveUntil(route, (_) => false);
+      if (event == AuthNavigation.failed) {
+        final context = _navigator.currentContext;
+        if (context != null) {
+          ScaffoldMessenger.maybeOf(context)?.showSnackBar(const SnackBar(
+              content: Text(
+                  'This sign-in link could not be opened. Request a new link and try again.')));
+        }
+      }
+    });
+    // Auth callbacks can arrive while the app is idle with no frame scheduled.
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
       listenable: AppSession.instance,
       builder: (context, _) => MaterialApp(
+            navigatorKey: _navigator,
             debugShowCheckedModeBanner: false,
             title: 'CivicConnect · Your community, connected',
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
             themeMode: AppSession.instance.themeMode,
-            initialRoute: initialRoute ?? '/',
+            initialRoute: widget.initialRoute ?? '/',
             routes: _routes,
             // An explicit entry point should not create a hidden bootstrap route.
             // Returning to '/' still initializes real services after leaving a demo.
-            onGenerateInitialRoutes: initialRoute == null
+            onGenerateInitialRoutes: widget.initialRoute == null
                 ? null
                 : (name) => [
                       MaterialPageRoute<void>(
@@ -55,6 +106,7 @@ class CivicConnectApp extends StatelessWidget {
         '/login': (_) => const LoginScreen(),
         '/signUp': (_) => const SignupScreen(),
         '/reset_password': (_) => const ForgotScreen(),
+        '/recover_password': (_) => const RecoveryScreen(),
         '/verification': (_) => const VerificationWaitingScreen(),
         '/dashboard': (_) => _authenticated(const DashboardPage()),
         '/explore': (_) => _authenticated(const ExploreIssuesScreen()),
@@ -67,10 +119,12 @@ class CivicConnectApp extends StatelessWidget {
 
   Widget _authenticated(Widget child) {
     if (AppSession.instance.isPreview) return child;
-    if (Firebase.apps.isEmpty || FirebaseAuth.instance.currentUser == null) {
+    if (SupabaseService.recoveryActive) return const RecoveryScreen();
+    if (!SupabaseService.isConfigured ||
+        SupabaseService.client.auth.currentUser == null) {
       return const LoginScreen();
     }
-    if (!FirebaseAuth.instance.currentUser!.emailVerified) {
+    if (SupabaseService.client.auth.currentUser!.emailConfirmedAt == null) {
       return const VerificationWaitingScreen();
     }
     return child;
@@ -94,17 +148,7 @@ class _AppBootstrapState extends State<_AppBootstrap> {
   Future<void> _initialize() async {
     await AppSession.instance.restorePreferences();
     if (AppSession.instance.isPreview) return;
-    if (Firebase.apps.isEmpty) {
-      await Firebase.initializeApp(
-              options: DefaultFirebaseOptions.currentPlatform)
-          .timeout(const Duration(seconds: 20));
-    }
-    try {
-      await SupabaseService.initialize().timeout(const Duration(seconds: 15));
-    } catch (error) {
-      debugPrint(
-          'Photo storage initialization unavailable: ${error.runtimeType}');
-    }
+    await SupabaseService.initialize().timeout(const Duration(seconds: 20));
   }
 
   @override
@@ -113,9 +157,12 @@ class _AppBootstrapState extends State<_AppBootstrap> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done &&
             !snapshot.hasError) {
-          return AppSession.instance.isPreview
-              ? const DashboardPage()
-              : const SplashScreen();
+          return SupabaseService.recoveryActive &&
+                  !AppSession.instance.isPreview
+              ? const RecoveryScreen()
+              : AppSession.instance.isPreview
+                  ? const DashboardPage()
+                  : const SplashScreen();
         }
         return Scaffold(
             body: SafeArea(

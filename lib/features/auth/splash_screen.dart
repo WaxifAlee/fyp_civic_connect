@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fyp_civic_connect/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
@@ -8,7 +8,8 @@ import 'auth_fields.dart';
 import 'auth_flow.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.authService = const AuthService()});
+  final AuthService authService;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -27,24 +28,34 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _restoreSession() async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      if (AppSession.instance.isPreview) {
+        Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (_) => false);
+        return;
+      }
+      final user = widget.authService.currentUser;
       var route = '/welcome';
       globalCitizenUser = null;
       if (user != null) {
-        if (user.emailVerified) {
+        if (user.emailConfirmedAt != null) {
           await prepareVerifiedCitizen(user);
           route = '/dashboard';
         } else {
           route = '/verification';
         }
       }
-      if (!mounted) return;
+      if (!mounted ||
+          AppSession.instance.isPreview ||
+          widget.authService.currentUser?.id != user?.id) {
+        return;
+      }
       AppSession.instance.leavePreview();
       Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
     } catch (error) {
@@ -55,13 +66,20 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _signOut() async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     setState(() => _busy = true);
     try {
-      await FirebaseAuth.instance.signOut();
+      await widget.authService.signOut();
+      if (!mounted || AppSession.instance.isPreview) {
+        return;
+      }
       globalCitizenUser = null;
       AppSession.instance.leavePreview();
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
     } catch (error) {
       if (mounted) setState(() => _error = friendlyAuthError(error));

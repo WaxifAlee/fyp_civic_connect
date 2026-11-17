@@ -173,7 +173,7 @@ void main() {
     await tester.tap(find.text('Exit demo'));
     await tester.pumpAndSettle();
     expect(AppSession.instance.isPreview, isFalse);
-    // No Firebase plugin is initialized in widget tests. Bootstrap must expose retry.
+    // No backend is configured in widget tests. Bootstrap must expose retry.
     expect(find.text('We couldn’t get connected'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
   });

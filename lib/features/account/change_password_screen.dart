@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
+import 'package:fyp_civic_connect/services/supabase_client.dart';
 import 'package:fyp_civic_connect/utils/validators.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -60,26 +60,26 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final newPassword = _newPassword.text;
     setState(() => _saving = true);
     try {
-      if (Firebase.apps.isEmpty) {
+      if (!SupabaseService.isConfigured) {
         throw StateError(
           'Account services are unavailable. Please try again '
           'later.',
         );
       }
-      final user = FirebaseAuth.instance.currentUser;
+      final auth = SupabaseService.client.auth;
+      final user = auth.currentUser;
       if (user == null || user.email == null) {
         throw StateError(
           'Sign in with your email and password before changing '
           'your password.',
         );
       }
-      final credential = EmailAuthProvider.credential(
+      await auth.signInWithPassword(
         email: user.email!,
         password: currentPassword,
       );
-      await user.reauthenticateWithCredential(credential);
-      if (!mounted || _isPreview) return;
-      await user.updatePassword(newPassword);
+      if (!mounted || _isPreview || auth.currentUser?.id != user.id) return;
+      await auth.updateUser(UserAttributes(password: newPassword));
       if (!mounted) return;
       TextInput.finishAutofillContext();
       _currentPassword.clear();
@@ -88,24 +88,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       setState(() => _updated = true);
       // Preserve the existing app's requirement to sign in after an update.
       await _signOutAfterUpdate();
-    } on FirebaseAuthException catch (error) {
+    } on AuthException catch (error) {
       if (!mounted) return;
       setState(() {
         switch (error.code) {
-          case 'wrong-password':
-          case 'invalid-credential':
+          case 'invalid_credentials':
             _currentError = 'The current password is incorrect. Try again.';
-          case 'weak-password':
+          case 'weak_password':
+          case 'same_password':
             _newError = 'Choose a stronger password using the guidance below.';
-          case 'too-many-requests':
+          case 'over_request_rate_limit':
             _error = 'Too many attempts. Wait a while before trying again.';
-          case 'network-request-failed':
+          case 'network_error':
             _error = 'Check your internet connection and try again.';
-          case 'requires-recent-login':
-          case 'user-token-expired':
-          case 'invalid-user-token':
+          case 'session_not_found':
+          case 'refresh_token_not_found':
+          case 'bad_jwt':
             _error = 'Your session has expired. Sign in again, then retry.';
-          case 'user-disabled':
+          case 'user_banned':
             _error =
                 'This account is disabled. Password changes are unavailable.';
           default:
@@ -127,7 +127,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Future<void> _signOutAfterUpdate() async {
     try {
       if (_isPreview) return;
-      await FirebaseAuth.instance.signOut();
+      await SupabaseService.client.auth.signOut();
       globalCitizenUser = null;
       if (!mounted) return;
       final messenger = ScaffoldMessenger.of(context);

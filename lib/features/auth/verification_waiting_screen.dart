@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fyp_civic_connect/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
@@ -11,7 +11,9 @@ import 'auth_flow.dart';
 import 'auth_layout.dart';
 
 class VerificationWaitingScreen extends StatefulWidget {
-  const VerificationWaitingScreen({super.key});
+  const VerificationWaitingScreen(
+      {super.key, this.authService = const AuthService()});
+  final AuthService authService;
 
   @override
   State<VerificationWaitingScreen> createState() =>
@@ -69,26 +71,27 @@ class _VerificationWaitingScreenState extends State<VerificationWaitingScreen>
   }
 
   Future<void> _checkVerification() async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     setState(() {
       _checking = true;
       _error = null;
       _notice = null;
     });
+    final wasPreview = AppSession.instance.isPreview;
     try {
-      await FirebaseAuth.instance.currentUser?.reload();
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/login',
-            (route) => false,
-          );
-        }
+      final user = await widget.authService.refreshUser();
+      if (!mounted || AppSession.instance.isPreview != wasPreview) {
         return;
       }
-      if (!user.emailVerified) {
+      if (user == null) {
+        setState(() =>
+            _notice = 'If you opened a confirmation link in another browser, '
+                'sign in here to continue. You can also check your inbox or resend below.');
+        return;
+      }
+      if (user.emailConfirmedAt == null) {
         if (mounted) {
           setState(
             () => _notice = 'Your email hasn’t been verified yet. Open '
@@ -97,9 +100,16 @@ class _VerificationWaitingScreenState extends State<VerificationWaitingScreen>
         }
         return;
       }
-      await prepareVerifiedCitizen(user);
-      if (!mounted) return;
+      if (widget.authService.currentUser?.id != user.id) {
+        return;
+      }
       AppSession.instance.leavePreview();
+      await prepareVerifiedCitizen(user);
+      if (!mounted ||
+          AppSession.instance.isPreview ||
+          widget.authService.currentUser?.id != user.id) {
+        return;
+      }
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/dashboard',
@@ -113,24 +123,22 @@ class _VerificationWaitingScreenState extends State<VerificationWaitingScreen>
   }
 
   Future<void> _resend() async {
-    if (_busy || _remaining > 0) return;
+    if (_busy || _remaining > 0) {
+      return;
+    }
     setState(() {
       _sending = true;
       _error = null;
       _notice = null;
     });
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw const AccountSetupException(
-          'Your session ended. Sign in again to continue.',
-        );
+      await widget.authService.resendVerification();
+      if (!mounted) {
+        return;
       }
-      await user.sendEmailVerification();
-      if (!mounted) return;
       setState(() {
         _notice =
-            'A new verification link has been sent. Check your inbox and spam folder.';
+            'If confirmation is pending for that address, check your inbox and spam folder for a link.';
         _startCooldown();
       });
     } catch (error) {
@@ -141,16 +149,23 @@ class _VerificationWaitingScreenState extends State<VerificationWaitingScreen>
   }
 
   Future<void> _signOut() async {
-    if (_busy) return;
+    if (_busy) {
+      return;
+    }
     setState(() {
       _signingOut = true;
       _error = null;
     });
     try {
-      await FirebaseAuth.instance.signOut();
+      final wasPreview = AppSession.instance.isPreview;
+      await widget.authService.signOut();
+      if (!mounted ||
+          AppSession.instance.isPreview != wasPreview ||
+          widget.authService.currentUser != null) {
+        return;
+      }
       globalCitizenUser = null;
       AppSession.instance.leavePreview();
-      if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } catch (error) {
       if (mounted) setState(() => _error = friendlyAuthError(error));
@@ -162,16 +177,17 @@ class _VerificationWaitingScreenState extends State<VerificationWaitingScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final email = FirebaseAuth.instance.currentUser?.email;
+    final email = widget.authService.pendingVerificationEmail ??
+        widget.authService.currentUser?.email;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) _signOut();
       },
       child: AuthLayout(
-        title: 'One last step',
+        title: 'Check your email',
         description:
-            'Verify your email to finish setting up your citizen account.',
+            'Check your inbox for any confirmation link, or sign in if you already have an account.',
         onBack: _signOut,
         backEnabled: !_busy,
         storyTitle: 'Your voice belongs\nhere.',
@@ -227,7 +243,13 @@ class _VerificationWaitingScreenState extends State<VerificationWaitingScreen>
                       : 'Resend verification email',
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          TextButton(
+            style: authTextButtonStyle(),
+            onPressed: _busy ? null : _signOut,
+            child: const Text('Sign in after confirming your email'),
+          ),
+          const SizedBox(height: 12),
           TextButton(
             style: authTextButtonStyle(),
             onPressed: _busy ? null : _signOut,

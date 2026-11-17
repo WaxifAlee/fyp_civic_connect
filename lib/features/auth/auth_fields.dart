@@ -159,3 +159,15 @@ String? validateAuthEmail(String? value) {
   }
   return null;
 }
+
+String? validateNewAuthPassword(String? value) {
+  if (value == null || value.length < 8) return 'Use at least 8 characters.';
+  if (value.length > 64) return 'Use 64 characters or fewer.';
+  if (!RegExp(r'[A-Z]').hasMatch(value) ||
+      !RegExp(r'[a-z]').hasMatch(value) ||
+      !RegExp(r'[0-9]').hasMatch(value) ||
+      !RegExp(r'[^a-zA-Z0-9\s]').hasMatch(value)) {
+    return 'Include uppercase and lowercase letters, a number, and a symbol.';
+  }
+  return null;
+}

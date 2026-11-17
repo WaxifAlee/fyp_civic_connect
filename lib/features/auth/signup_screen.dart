@@ -1,20 +1,16 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
-import 'package:fyp_civic_connect/services/supabase_client.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'
-    show FileOptions, Supabase;
+import 'package:fyp_civic_connect/services/auth_service.dart';
 
 import 'auth_fields.dart';
 import 'auth_flow.dart';
 import 'auth_layout.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  const SignupScreen({super.key, this.authService = const AuthService()});
+  final AuthService authService;
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -31,17 +27,12 @@ class _SignupScreenState extends State<SignupScreen> {
   final _phone = TextEditingController();
   final _cnic = TextEditingController();
   String? _gender;
-  Uint8List? _photo;
-  String? _photoExtension;
-  String? _uploadedPhoto;
-  User? _createdUser;
   int _step = 0;
   bool _consent = false;
   bool _busy = false;
-  bool _pickingPhoto = false;
   String? _error;
 
-  bool get _locked => _busy || _createdUser != null;
+  bool get _locked => _busy;
 
   @override
   void dispose() {
@@ -60,7 +51,9 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _continue() {
-    if (_busy || !_accountForm.currentState!.validate()) return;
+    if (_busy || !_accountForm.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     setState(() {
       _step = 1;
@@ -68,75 +61,13 @@ class _SignupScreenState extends State<SignupScreen> {
     });
   }
 
-  Future<void> _pickPhoto() async {
-    if (_busy || _pickingPhoto) return;
-    setState(() => _pickingPhoto = true);
-    try {
-      final file = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (file == null || !mounted) return;
-      if (await file.length() > 5 * 1024 * 1024) {
-        throw const AccountSetupException(
-          'Choose a profile photo smaller than 5 MB.',
-        );
-      }
-      final bytes = await file.readAsBytes();
-      final jpeg = bytes.length >= 3 &&
-          bytes[0] == 0xff &&
-          bytes[1] == 0xd8 &&
-          bytes[2] == 0xff;
-      final png = bytes.length >= 8 &&
-          bytes[0] == 0x89 &&
-          bytes[1] == 0x50 &&
-          bytes[2] == 0x4e &&
-          bytes[3] == 0x47 &&
-          bytes[4] == 0x0d &&
-          bytes[5] == 0x0a &&
-          bytes[6] == 0x1a &&
-          bytes[7] == 0x0a;
-      if (!jpeg && !png) {
-        throw const AccountSetupException(
-          'Choose a JPEG or PNG profile photo.',
-        );
-      }
-      if (!mounted) return;
-      setState(() {
-        _photo = bytes;
-        _uploadedPhoto = null;
-        _photoExtension = jpeg ? 'jpg' : 'png';
-        _error = null;
-      });
-    } catch (error) {
-      if (mounted) setState(() => _error = friendlyAuthError(error));
-    } finally {
-      if (mounted) setState(() => _pickingPhoto = false);
-    }
-  }
-
-  Future<String?> _uploadPhoto(User user) async {
-    if (_photo == null) return null;
-    if (_uploadedPhoto != null) return _uploadedPhoto;
-    final bucket = Supabase.instance.client.storage.from('profile-pictures');
-    final path =
-        '${user.uid}/${DateTime.now().microsecondsSinceEpoch}.$_photoExtension';
-    await bucket.uploadBinary(
-      path,
-      _photo!,
-      fileOptions: FileOptions(
-        contentType: _photoExtension == 'png' ? 'image/png' : 'image/jpeg',
-      ),
-    );
-    _uploadedPhoto = bucket.getPublicUrl(path);
-    return _uploadedPhoto;
-  }
-
   Future<void> _register() async {
-    if (_busy || _pickingPhoto || !_identityForm.currentState!.validate()) {
+    if (_busy || !_identityForm.currentState!.validate()) {
       return;
     }
     if (!_consent) {
-      setState(
-        () => _error = 'Confirm your consent to create your citizen account.',
-      );
+      setState(() =>
+          _error = 'Confirm your consent to create your citizen account.');
       return;
     }
     FocusScope.of(context).unfocus();
@@ -144,138 +75,59 @@ class _SignupScreenState extends State<SignupScreen> {
       _busy = true;
       _error = null;
     });
-    var profileSaved = false;
+    final wasPreview = AppSession.instance.isPreview;
     try {
-      final firestore = FirebaseFirestore.instance;
-      if (_photo != null && !SupabaseService.isConfigured) {
-        throw const AccountSetupException(
-          'Profile photo uploads are unavailable. Remove the optional photo '
-          'to continue, or try again later.',
-        );
+      final response = await widget.authService.signUp(
+        email: _email.text,
+        password: _password.text,
+        fullName: _name.text,
+        phone: _phone.text,
+        cnic: _cnic.text,
+        location: _address.text,
+        gender: _gender!,
+      );
+      if (!mounted || AppSession.instance.isPreview != wasPreview) {
+        return;
       }
-      if (_createdUser == null) {
-        final phoneMatch = await firestore
-            .collection('users')
-            .where('phone', isEqualTo: _phone.text.trim())
-            .limit(1)
-            .get();
-        final cnicMatch = await firestore
-            .collection('users')
-            .where('cnic', isEqualTo: _cnic.text.trim())
-            .limit(1)
-            .get();
-        if (phoneMatch.docs.isNotEmpty || cnicMatch.docs.isNotEmpty) {
-          throw const AccountSetupException(
-            'These identity details are already associated with an account. '
-            'Check your details, or sign in to your existing account.',
-          );
-        }
-        final credential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _email.text.trim(),
-          password: _password.text,
-        );
-        _createdUser = credential.user;
-        if (_createdUser == null) {
-          throw StateError('Missing newly created user');
-        }
+      // Empty identities can be Supabase's deliberately ambiguous duplicate
+      // response. Never call it a newly created account or load its profile.
+      if (response.user?.identities?.isEmpty != false ||
+          response.session == null) {
         AppSession.instance.leavePreview();
+        TextInput.finishAutofillContext();
+        Navigator.pushNamedAndRemoveUntil(
+            context, '/verification', (_) => false);
+        return;
       }
-      final user = _createdUser!;
-      final photoUrl = await _uploadPhoto(user);
-      final now = DateTime.now();
-      // Keep the existing pending_users schema. Passwords stay exclusively in
-      // Firebase Authentication, never in a citizen document.
-      await firestore.collection('pending_users').doc(user.uid).set({
-        'uid': user.uid,
-        'full_name': _name.text.trim(),
-        'locations': _address.text.trim(),
-        'email': _email.text.trim(),
-        'phone': _phone.text.trim(),
-        'role': 'citizen',
-        'profile_picture': photoUrl,
-        'created_at': now,
-        'updated_at': now,
-        'cnic': _cnic.text.trim(),
-        'gender': _gender,
-        'email_verified': false,
-      });
-      profileSaved = true;
-      // Saving the profile is the registration boundary. A mail delivery error
-      // can be recovered on the verification screen without creating a new user.
-      try {
-        await user.sendEmailVerification();
-      } catch (_) {
-        // Verification offers resend and does not falsely claim delivery.
+      final user = response.user;
+      if (user == null || widget.authService.currentUser?.id != user.id) {
+        return;
       }
-      if (!mounted) return;
+      AppSession.instance.leavePreview();
+      if (user.emailConfirmedAt != null) await prepareVerifiedCitizen(user);
+      if (!mounted ||
+          AppSession.instance.isPreview ||
+          widget.authService.currentUser?.id != user.id) {
+        return;
+      }
       TextInput.finishAutofillContext();
       Navigator.pushNamedAndRemoveUntil(
         context,
-        '/verification',
-        (route) => false,
+        user.emailConfirmedAt != null ? '/dashboard' : '/verification',
+        (_) => false,
       );
     } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        final detail = friendlyAuthError(error);
-        _error = _createdUser != null && !profileSaved
-            ? 'Your sign-in was created, but your profile has not been saved. '
-                'Keep this page open and retry to finish setup. $detail'
-            : detail;
-      });
+      if (mounted) setState(() => _error = friendlyAuthError(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  Future<void> _leave() async {
-    if (_busy || _pickingPhoto) return;
-    if (_createdUser != null) {
-      final discard = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Cancel account setup?'),
-          content: const Text(
-            'Your profile has not been saved. Cancelling will remove the '
-            'sign-in created during this setup. You can also stay and retry.',
-          ),
-          actions: [
-            TextButton(
-              style: authTextButtonStyle(),
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Keep setting up'),
-            ),
-            TextButton(
-              style: authTextButtonStyle(),
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Cancel setup'),
-            ),
-          ],
-        ),
-      );
-      if (discard != true || !mounted) return;
-      setState(() => _busy = true);
-      try {
-        await _createdUser!.delete();
-        _createdUser = null;
-        if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/welcome',
-          (route) => false,
-        );
-      } catch (error) {
-        if (mounted) {
-          setState(
-            () => _error = 'Setup could not be cancelled. Your details are '
-                'still on this page; retry saving or cancelling. ${friendlyAuthError(error)}',
-          );
-        }
-      } finally {
-        if (mounted) setState(() => _busy = false);
-      }
-    } else if (_step == 1) {
+  void _leave() {
+    if (_busy) {
+      return;
+    }
+    if (_step == 1) {
       setState(() {
         _step = 0;
         _error = null;
@@ -292,9 +144,9 @@ class _SignupScreenState extends State<SignupScreen> {
         title: const Text('Your registration details'),
         content: const SingleChildScrollView(
           child: Text(
-            'Registration saves your name, email, phone, CNIC, gender, address, '
-            'and optional profile photo with your citizen account. '
-            'Your password is handled by Firebase Authentication. '
+            'Registration saves your name, email, phone, CNIC, gender, and address '
+            'with your private citizen account. '
+            'Your password is handled by Supabase Auth. '
             'You’ll need to verify your email before entering the app.',
           ),
         ),
@@ -311,7 +163,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -321,9 +172,9 @@ class _SignupScreenState extends State<SignupScreen> {
         title: _step == 0 ? 'Make yourself heard' : 'A little about you',
         description: _step == 0
             ? 'Create your account to report and follow local issues.'
-            : 'Add your citizen details to complete your registration. All fields are required unless marked optional.',
+            : 'Add your citizen details to complete your registration. All fields are required.',
         onBack: _leave,
-        backEnabled: !_busy && !_pickingPhoto,
+        backEnabled: !_busy,
         children: [
           Semantics(
             label: 'Registration step ${_step + 1} of 2: '
@@ -403,21 +254,7 @@ class _SignupScreenState extends State<SignupScreen> {
                           helperText:
                               'Use at least 8 characters, including uppercase '
                               'and lowercase letters, a number, and a symbol.',
-                          validator: (value) {
-                            if (value == null || value.length < 8) {
-                              return 'Use at least 8 characters.';
-                            }
-                            if (value.length > 64) {
-                              return 'Use 64 characters or fewer.';
-                            }
-                            if (!RegExp(r'[A-Z]').hasMatch(value) ||
-                                !RegExp(r'[a-z]').hasMatch(value) ||
-                                !RegExp(r'[0-9]').hasMatch(value) ||
-                                !RegExp(r'[^a-zA-Z0-9\s]').hasMatch(value)) {
-                              return 'Include uppercase and lowercase letters, a number, and a symbol.';
-                            }
-                            return null;
-                          },
+                          validator: validateNewAuthPassword,
                           enabled: !_locked,
                         ),
                         AuthField(
@@ -491,8 +328,12 @@ class _SignupScreenState extends State<SignupScreen> {
                           ],
                           helperText:
                               'House or apartment, street, area, and city',
-                          validator: (value) =>
-                              requiredAuthValue(value, 'address'),
+                          validator: (value) {
+                            final length = value?.trim().length ?? 0;
+                            return length < 3 || length > 250
+                                ? 'Use an address between 3 and 250 characters.'
+                                : null;
+                          },
                           enabled: !_locked,
                         ),
                         DropdownButtonFormField<String>(
@@ -522,7 +363,8 @@ class _SignupScreenState extends State<SignupScreen> {
                               value == null ? 'Select your gender.' : null,
                         ),
                         const SizedBox(height: 24),
-                        _photoPicker(theme),
+                        const Text(
+                            'Add a profile photo from Account after verifying your email.'),
                         const SizedBox(height: 20),
                         CheckboxListTile(
                           contentPadding: EdgeInsets.zero,
@@ -549,22 +391,16 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         const SizedBox(height: 24),
                         AsyncButton(
-                          label: _createdUser == null
-                              ? 'Create account'
-                              : 'Retry saving my profile',
+                          label: 'Create account',
                           icon: Icons.arrow_forward_outlined,
-                          onPressed: _busy || _pickingPhoto ? null : _register,
+                          onPressed: _busy ? null : _register,
                           isLoading: _busy,
                         ),
                         const SizedBox(height: 8),
                         TextButton(
                           style: authTextButtonStyle(),
-                          onPressed: _busy || _pickingPhoto ? null : _leave,
-                          child: Text(
-                            _createdUser == null
-                                ? 'Back to account details'
-                                : 'Cancel account setup',
-                          ),
+                          onPressed: _busy ? null : _leave,
+                          child: const Text('Back to account details'),
                         ),
                       ],
                     ),
@@ -574,75 +410,22 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          if (_createdUser == null)
-            Wrap(
-              alignment: WrapAlignment.center,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                const Text('Already have an account?'),
-                TextButton(
-                  style: authTextButtonStyle(),
-                  onPressed: _busy || _pickingPhoto
-                      ? null
-                      : () => Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text('Sign in'),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _photoPicker(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Profile photo (optional)', style: theme.textTheme.titleSmall),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: theme.colorScheme.secondaryContainer,
-              foregroundImage: _photo == null ? null : MemoryImage(_photo!),
-              child: _photo == null
-                  ? const Icon(Icons.person_outline, size: 28)
-                  : null,
-            ),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
-              onPressed: _busy || _pickingPhoto ? null : _pickPhoto,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
-              label: Text(
-                _pickingPhoto
-                    ? 'Opening photos…'
-                    : _photo == null
-                        ? 'Choose photo'
-                        : 'Change photo',
-              ),
-            ),
-            if (_photo != null)
-              IconButton(
-                tooltip: 'Remove profile photo',
-                constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              const Text('Already have an account?'),
+              TextButton(
+                style: authTextButtonStyle(),
                 onPressed: _busy
                     ? null
-                    : () => setState(() {
-                          _photo = null;
-                          _uploadedPhoto = null;
-                          _photoExtension = null;
-                        }),
-                icon: const Icon(Icons.close_outlined),
+                    : () => Navigator.pushReplacementNamed(context, '/login'),
+                child: const Text('Sign in'),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text('JPEG or PNG, up to 5 MB.', style: theme.textTheme.bodySmall),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
