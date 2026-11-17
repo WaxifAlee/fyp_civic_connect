@@ -22,6 +22,9 @@ class AuthorityController extends ChangeNotifier {
   bool _disposed = false;
   int _generation = 0;
   String? _pageSession;
+  (String, String?, String?, String, int)? _pageCriteria;
+  (String, String?, String?, String, int) get _criteria =>
+      (query, status, category, sort, pageIndex);
 
   Future<void> load(
       {String? query, int? pageIndex, bool retainPage = false}) async {
@@ -32,7 +35,10 @@ class AuthorityController extends ChangeNotifier {
     if (pageIndex != null) this.pageIndex = pageIndex;
     final generation = ++_generation;
     final uid = service.sessionId;
-    retainingPage = retainPage && page != null && uid == _pageSession;
+    retainingPage = retainPage &&
+        page != null &&
+        uid == _pageSession &&
+        _pageCriteria == _criteria;
     loading = true;
     error = null;
     denied = false;
@@ -46,8 +52,9 @@ class AuthorityController extends ChangeNotifier {
         denied = true;
         return;
       }
-      if (access?.role != membership?.role ||
-          access?.department != membership?.department) {
+      final scopeChanged = access?.role != membership?.role ||
+          access?.department != membership?.department;
+      if (scopeChanged) {
         page = null;
         retainingPage = false;
       }
@@ -58,6 +65,8 @@ class AuthorityController extends ChangeNotifier {
         return;
       }
       if (!membership.isAdmin) category = null;
+      if (scopeChanged) _notify();
+      final criteria = _criteria;
       final result = await service.queue(
           query: this.query,
           status: status,
@@ -73,6 +82,7 @@ class AuthorityController extends ChangeNotifier {
       }
       page = result;
       _pageSession = uid;
+      _pageCriteria = criteria;
       // Deletions can empty the final page between requests.
       if (this.pageIndex > 0 &&
           result.reports.isEmpty &&

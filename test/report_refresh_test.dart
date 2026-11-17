@@ -7,6 +7,7 @@ import 'package:fyp_civic_connect/services/report_service.dart';
 
 class RefreshService extends ReportService {
   final requests = <Completer<List<Report>>>[];
+  Completer<ReportVote>? pendingVote;
   @override
   Future<List<Report>> fetchAllReports(
       {String? category, String? status, bool sortByPopularity = false}) {
@@ -19,8 +20,9 @@ class RefreshService extends ReportService {
   Future<void> deleteReport(String id, List<String> mediaReferences) async {}
 
   @override
-  Future<ReportVote> toggleUpvote(String id) async =>
-      const ReportVote(count: 3, voters: ['citizen']);
+  Future<ReportVote> toggleUpvote(String id) async => pendingVote == null
+      ? const ReportVote(count: 3, voters: ['citizen'])
+      : await pendingVote!.future;
 }
 
 void main() {
@@ -80,6 +82,25 @@ void main() {
     service.requests.last.complete([Report(id: 'one', upvotes: 0)]);
     await refresh;
     expect(controller.reports.single.upvotes, 3);
+  });
+
+  test('confirmed support reaches a replacement report loaded while voting',
+      () async {
+    final initial = controller.load();
+    service.requests.last.complete([Report(id: 'one', upvotes: 0)]);
+    await initial;
+    final original = controller.reports.single;
+    service.pendingVote = Completer<ReportVote>();
+    final voting = controller.toggleUpvote(original);
+    final refresh = controller.load();
+    service.requests.last.complete([Report(id: 'one', upvotes: 0)]);
+    await refresh;
+    service.pendingVote!
+        .complete(const ReportVote(count: 3, voters: ['citizen']));
+    expect(await voting, isTrue);
+    expect(original.upvotes, 3);
+    expect(controller.reports.single.upvotes, 3);
+    expect(controller.reports.single.upvotedBy, contains('citizen'));
   });
 
   test('previous account reports are cleared before loading another account',

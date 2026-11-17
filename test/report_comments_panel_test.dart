@@ -8,6 +8,7 @@ import 'package:fyp_civic_connect/features/reports/widgets/report_filters_bar.da
 import 'package:fyp_civic_connect/features/reports/domain/report_filters.dart';
 import 'package:fyp_civic_connect/features/reports/widgets/report_card.dart';
 import 'package:fyp_civic_connect/models/report.dart';
+import 'package:fyp_civic_connect/features/reports/application/report_comments_controller.dart';
 
 void main() {
   setUpAll(() async {
@@ -17,6 +18,24 @@ void main() {
   });
   setUp(() => AppSession.instance.enterPreview());
   tearDown(() => AppSession.instance.leavePreview());
+  testWidgets(
+      'reattaching an existing discussion controller reveals its retained draft',
+      (tester) async {
+    final controller = ReportCommentsController(reportId: 'reattached-draft');
+    addTearDown(controller.dispose);
+    await controller.load();
+    controller.updateDraft('A visible draft must match what will be posted.');
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: SingleChildScrollView(
+                child: ReportCommentsPanel(
+                    reportId: controller.reportId, controller: controller)))));
+    await tester.pumpAndSettle();
+    final field =
+        tester.widget<TextField>(find.byKey(const ValueKey('comment-draft')));
+    expect(field.controller!.text, controller.draft);
+    expect(field.controller!.text, isNotEmpty);
+  });
   testWidgets(
       'actual report sheet keeps comment controls above the phone keyboard',
       (tester) async {

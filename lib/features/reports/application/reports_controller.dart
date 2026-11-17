@@ -96,16 +96,21 @@ class ReportsController extends ChangeNotifier {
       if (committed != null) {
         report.upvotedBy = committed.voters.contains(uid) ? [uid] : [];
         report.upvotes = committed.count;
-        return true;
+      } else {
+        final voters = List<String>.from(report.upvotedBy ?? []);
+        final voted = voters.contains(uid);
+        voted ? voters.remove(uid) : voters.add(uid);
+        report.upvotedBy = voters;
+        report.upvotes = ((report.upvotes ?? 0) + (voted ? -1 : 1)).clamp(
+          0,
+          1 << 31,
+        );
       }
-      final voters = List<String>.from(report.upvotedBy ?? []);
-      final voted = voters.contains(uid);
-      voted ? voters.remove(uid) : voters.add(uid);
-      report.upvotedBy = voters;
-      report.upvotes = ((report.upvotes ?? 0) + (voted ? -1 : 1)).clamp(
-        0,
-        1 << 31,
-      );
+      // Refresh may have replaced the card's model while this write was pending.
+      for (final current in reports.where((item) => item.id == id)) {
+        current.upvotes = report.upvotes;
+        current.upvotedBy = List<String>.from(report.upvotedBy ?? []);
+      }
       return true;
     } catch (_) {
       return false;

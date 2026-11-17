@@ -160,6 +160,11 @@ void main() {
     await tester.tap(find.text('Keep editing'));
     await tester.pumpAndSettle();
     expect(find.text('A useful detail to keep'), findsOneWidget);
+    await tester.fling(find.text('Report details'), const Offset(0, 160), 1000);
+    await tester.pumpAndSettle();
+    expect(find.text('Discard comment draft?'), findsOneWidget);
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
     // Barrier and Android Back use the same guard.
     await tester.tapAt(const Offset(2, 2));
     await tester.pumpAndSettle();

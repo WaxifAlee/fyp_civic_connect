@@ -38,6 +38,78 @@ class AuthorityBackend extends ReportBackend {
 
 void main() {
   setUp(() => AppSession.instance.leavePreview());
+  for (final criterion in ['query', 'status', 'category', 'sort', 'page']) {
+    test(
+        'failed $criterion change never retains a queue from different criteria',
+        () async {
+      final backend = AuthorityBackend();
+      final controller =
+          AuthorityController(service: AuthorityService(backend: backend));
+      addTearDown(controller.dispose);
+      await controller.load();
+      switch (criterion) {
+        case 'query':
+          controller.query = 'school';
+        case 'status':
+          controller.status = 'resolved';
+        case 'category':
+          controller.category = 'Police Department';
+        case 'sort':
+          controller.sort = 'newest';
+        case 'page':
+          controller.pageIndex = 1;
+      }
+      backend.handle = (name, _) async {
+        if (name == 'get_authority_access') {
+          return {'role': 'admin', 'department': null};
+        }
+        throw const AuthorityException('Offline');
+      };
+      await controller.load();
+      await controller.load(retainPage: true);
+      expect(controller.retainingPage, isFalse);
+    });
+  }
+
+  test('membership changes notify the UI before the new queue finishes loading',
+      () async {
+    final backend = AuthorityBackend();
+    final controller =
+        AuthorityController(service: AuthorityService(backend: backend));
+    addTearDown(controller.dispose);
+    await controller.load();
+    var clearedScopeRendered = false;
+    controller.addListener(() {
+      if (controller.access?.role == 'department' && controller.page == null) {
+        clearedScopeRendered = true;
+      }
+    });
+    final queue = Completer<dynamic>();
+    backend.handle = (name, _) async {
+      if (name == 'get_authority_access') {
+        return {'role': 'department', 'department': 'Police Department'};
+      }
+      return queue.future;
+    };
+    final refresh = controller.load(retainPage: true);
+    await Future<void>.delayed(Duration.zero);
+    try {
+      expect(clearedScopeRendered, isTrue);
+    } finally {
+      queue.complete({
+        'reports': [],
+        'total': 0,
+        'counts': {
+          'total': 0,
+          'pending': 0,
+          'inprogress': 0,
+          'resolved': 0,
+          'rejected': 0
+        }
+      });
+      await refresh;
+    }
+  });
   test(
       'staff access validates role and department instead of trusting metadata',
       () async {

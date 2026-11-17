@@ -9,6 +9,8 @@ class ReportCommentsPanel extends StatefulWidget {
       {super.key, required this.reportId, this.service, this.controller});
   final String reportId;
   final ReportCommentsService? service;
+
+  /// Owning dialogs load/dispose this controller; standalone panels own theirs.
   final ReportCommentsController? controller;
   @override
   State<ReportCommentsPanel> createState() => _ReportCommentsPanelState();
@@ -27,6 +29,9 @@ class _ReportCommentsPanelState extends State<ReportCommentsPanel> {
     _controller = widget.controller ??
         ReportCommentsController(
             reportId: widget.reportId, service: widget.service);
+    _draft.value = TextEditingValue(
+        text: _controller.draft,
+        selection: TextSelection.collapsed(offset: _controller.draft.length));
     _controller.addListener(_changed);
     if (widget.controller == null) _controller.load();
   }

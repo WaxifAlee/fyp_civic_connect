@@ -274,6 +274,11 @@ void main() {
             .widget<TextFormField>(find.byKey(const ValueKey('progress-note')))
             .enabled,
         isFalse);
+    await tester.tap(find.byTooltip('Close service report'));
+    await tester.pumpAndSettle();
+    expect(find.text('Confirm your last change'), findsOneWidget);
+    await tester.tap(find.text('Return to report'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Retry same update'));
     await tester.pumpAndSettle();
     expect(service.requests.length, 2);
