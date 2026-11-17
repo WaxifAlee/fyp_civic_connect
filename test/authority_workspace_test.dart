@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +12,24 @@ import 'package:fyp_civic_connect/features/authority/presentation/authority_work
 class NoAccess extends AuthorityService {
   @override
   Future<AuthorityAccess?> access() async => null;
+}
+
+class RefreshQueue extends AuthorityService {
+  Completer<AuthorityPage>? pending;
+  @override
+  Future<AuthorityPage> queue(
+          {String query = '',
+          String? status,
+          String? category,
+          String sort = 'oldest',
+          int page = 0}) =>
+      pending?.future ??
+      super.queue(
+          query: query,
+          status: status,
+          category: category,
+          sort: sort,
+          page: page);
 }
 
 class LostResponse extends AuthorityService {
@@ -175,6 +194,49 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Streetlight out near the main market'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+      'queue refresh preserves visible reports after a connection failure',
+      (tester) async {
+    final service = RefreshQueue();
+    await openWorkspace(tester, service: service);
+    service.pending = Completer<AuthorityPage>();
+    await tester.tap(find.text('Refresh queue'));
+    await tester.pump();
+    expect(find.text('Streetlight out near the main market'), findsOneWidget);
+    service.pending!.completeError(
+        const AuthorityException('Could not refresh the queue.'));
+    await tester.pumpAndSettle();
+    expect(find.text('Streetlight out near the main market'), findsOneWidget);
+    expect(find.text('Could not refresh the queue.'), findsOneWidget);
+  });
+  testWidgets(
+      'authority editor protects unpublished notes and comment drafts on close',
+      (tester) async {
+    await openWorkspace(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey('review-demo-1')));
+    await tester.tap(find.byKey(const ValueKey('review-demo-1')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('progress-note')));
+    await tester.enterText(find.byKey(const ValueKey('progress-note')),
+        'A note still being prepared.');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Close service report'));
+    await tester.pumpAndSettle();
+    expect(find.text('Discard report changes?'), findsOneWidget);
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+    expect(find.text('A note still being prepared.'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('comment-draft')));
+    await tester.enterText(find.byKey(const ValueKey('comment-draft')),
+        'Keep this discussion draft too.');
+    await tester.pump();
+    await tester.tap(find.byTooltip('Close service report'));
+    await tester.pumpAndSettle();
+    expect(find.text('Discard report changes?'), findsOneWidget);
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+    expect(find.text('Keep this discussion draft too.'), findsOneWidget);
   });
   testWidgets('editor validates a public note and saves committed progress',
       (tester) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
 
 import 'auth_fields.dart';
@@ -51,7 +52,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   void _continue() {
-    if (_busy || !_accountForm.currentState!.validate()) {
+    if (_busy || !validateAndReveal(_accountForm.currentState)) {
       return;
     }
     FocusScope.of(context).unfocus();
@@ -62,7 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _register() async {
-    if (_busy || !_identityForm.currentState!.validate()) {
+    if (_busy || !validateAndReveal(_identityForm.currentState)) {
       return;
     }
     if (!_consent) {

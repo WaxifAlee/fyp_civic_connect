@@ -29,6 +29,7 @@ class ReportFiltersBar extends StatelessWidget {
     final searchField = TextField(
         controller: search,
         onChanged: onSearchChanged,
+        onSubmitted: (_) => FocusScope.of(context).unfocus(),
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
             labelText: 'Search reports',

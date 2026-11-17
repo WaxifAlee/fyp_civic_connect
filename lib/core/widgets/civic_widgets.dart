@@ -68,18 +68,25 @@ class CivicPage extends StatelessWidget {
       this.description,
       this.actions = const [],
       required this.children,
+      this.onRefresh,
+      this.refreshing = false,
       this.maxWidth = 1160});
   final String title;
   final String? description;
   final List<Widget> actions;
   final List<Widget> children;
   final double maxWidth;
+  final Future<void> Function()? onRefresh;
+  final bool refreshing;
   @override
   Widget build(BuildContext context) =>
       LayoutBuilder(builder: (context, constraints) {
         final compact = constraints.maxWidth < 600;
-        return SingleChildScrollView(
+        final scroll = SingleChildScrollView(
             key: PageStorageKey(title),
+            primary: true,
+            physics: const AlwaysScrollableScrollPhysics(),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: EdgeInsets.fromLTRB(
                 compact ? 20 : 36, compact ? 24 : 32, compact ? 20 : 36, 40),
             child: Align(
@@ -90,6 +97,11 @@ class CivicPage extends StatelessWidget {
                         child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                          if (refreshing) ...[
+                            const LinearProgressIndicator(
+                                semanticsLabel: 'Refreshing'),
+                            const SizedBox(height: 16),
+                          ],
                           LayoutBuilder(builder: (context, c) {
                             final heading = Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,6 +157,12 @@ class CivicPage extends StatelessWidget {
                               const SizedBox(height: 24)
                           ],
                         ])))));
+        return onRefresh == null
+            ? scroll
+            : RefreshIndicator.adaptive(
+                onRefresh: onRefresh!,
+                semanticsLabel: 'Refresh $title',
+                child: scroll);
       });
 }
 

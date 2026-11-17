@@ -14,13 +14,17 @@ class AuthorityController extends ChangeNotifier {
   String sort = 'oldest';
   int pageIndex = 0;
   bool loading = true;
+  bool retainingPage = false;
+  bool get refreshing => loading && retainingPage;
   bool denied = false;
   String? error;
   DateTime? lastLoaded;
   bool _disposed = false;
   int _generation = 0;
+  String? _pageSession;
 
-  Future<void> load({String? query, int? pageIndex}) async {
+  Future<void> load(
+      {String? query, int? pageIndex, bool retainPage = false}) async {
     if (query != null) {
       this.query = query;
       this.pageIndex = 0;
@@ -28,6 +32,7 @@ class AuthorityController extends ChangeNotifier {
     if (pageIndex != null) this.pageIndex = pageIndex;
     final generation = ++_generation;
     final uid = service.sessionId;
+    retainingPage = retainPage && page != null && uid == _pageSession;
     loading = true;
     error = null;
     denied = false;
@@ -40,6 +45,11 @@ class AuthorityController extends ChangeNotifier {
         page = null;
         denied = true;
         return;
+      }
+      if (access?.role != membership?.role ||
+          access?.department != membership?.department) {
+        page = null;
+        retainingPage = false;
       }
       access = membership;
       if (membership == null) {
@@ -62,6 +72,7 @@ class AuthorityController extends ChangeNotifier {
         return;
       }
       page = result;
+      _pageSession = uid;
       // Deletions can empty the final page between requests.
       if (this.pageIndex > 0 &&
           result.reports.isEmpty &&

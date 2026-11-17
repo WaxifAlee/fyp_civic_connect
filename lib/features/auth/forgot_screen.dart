@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
 
 import 'auth_fields.dart';
@@ -28,7 +29,7 @@ class _ForgotScreenState extends State<ForgotScreen> {
   }
 
   Future<void> _sendReset() async {
-    if (_busy || !_formKey.currentState!.validate()) {
+    if (_busy || !validateAndReveal(_formKey.currentState)) {
       return;
     }
     FocusScope.of(context).unfocus();

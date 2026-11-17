@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/civic_widgets.dart';
+import '../../../core/widgets/leave_guard.dart';
 import '../../../models/report.dart';
+import '../application/report_comments_controller.dart';
+import '../data/report_comments_service.dart';
 import '../domain/report_filters.dart';
 import 'report_progress_panel.dart';
 import 'report_comments_panel.dart';
@@ -147,6 +150,8 @@ class ReportCard extends StatelessWidget {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
+        enableDrag: false,
+        showDragHandle: false,
         builder: (context) => Padding(
             padding: EdgeInsets.only(
                 bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -191,10 +196,12 @@ class ReportDetails extends StatefulWidget {
       {super.key,
       required this.report,
       this.currentUserId,
+      this.commentsService,
       this.onSupport,
       this.onDelete});
   final Report report;
   final String? currentUserId;
+  final ReportCommentsService? commentsService;
   final Future<void> Function()? onSupport;
   final Future<bool> Function()? onDelete;
   @override
@@ -204,184 +211,258 @@ class ReportDetails extends StatefulWidget {
 class _ReportDetailsState extends State<ReportDetails> {
   bool _busy = false;
   String? _latestStatus;
+  ReportCommentsController? _comments;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.report.id != null) {
+      _comments = ReportCommentsController(
+          reportId: widget.report.id!, service: widget.commentsService)
+        ..load()
+        ..addListener(_changed);
+    }
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _comments?.removeListener(_changed);
+    _comments?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final report = widget.report;
     final theme = Theme.of(context);
     final supported = report.upvotedBy?.contains(widget.currentUserId) ?? false;
-    return Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(children: [
-                        Expanded(
-                            child: Text('Report details',
-                                style: theme.textTheme.titleLarge)),
-                        IconButton(
-                            tooltip: 'Close report details',
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close))
-                      ]),
-                      const SizedBox(height: 16),
-                      Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            StatusBadge(
-                                status: ReportStatus.parse(
-                                    _latestStatus ?? report.status)),
-                            Text(categoryLabel(report.category),
-                                style: theme.textTheme.bodySmall)
+    return LeaveGuard(
+      dirty: _comments?.draft.isNotEmpty ?? false,
+      busy: _busy || (_comments?.busy ?? false),
+      unresolved: !(_comments?.blocked ?? false) &&
+          ((_comments?.uncertain ?? false) ||
+              _comments?.pendingRemoval != null),
+      title: 'Discard comment draft?',
+      message:
+          'Your comment has not been posted. Leaving will discard this draft.',
+      builder: (context, _) => Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Column(children: [
+                GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onVerticalDragEnd: (details) {
+                      if ((details.primaryVelocity ?? 0) > 300) {
+                        Navigator.maybePop(context);
+                      }
+                    },
+                    child: Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 8, 12, 8),
+                        child: Column(children: [
+                          ExcludeSemantics(
+                              child: Container(
+                                  width: 32,
+                                  height: 4,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: BoxDecoration(
+                                      color: theme.colorScheme.outlineVariant,
+                                      borderRadius: BorderRadius.circular(2)))),
+                          Row(children: [
+                            Expanded(
+                                child: Text('Report details',
+                                    style: theme.textTheme.titleLarge)),
+                            IconButton(
+                                tooltip: 'Close report details',
+                                onPressed: () => Navigator.maybePop(context),
+                                icon: const Icon(Icons.close))
                           ]),
-                      const SizedBox(height: 20),
-                      Text(report.title ?? 'Community report',
-                          style: theme.textTheme.headlineSmall),
-                      const SizedBox(height: 12),
-                      Wrap(
-                          spacing: 12,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            Text(report.reportCode ?? 'Reference unavailable',
-                                style: theme.textTheme.labelLarge),
-                            if (report.reportCode != null)
-                              IconButton(
-                                  tooltip: 'Copy report reference',
-                                  icon:
-                                      const Icon(Icons.copy_outlined, size: 19),
-                                  onPressed: () async {
-                                    await Clipboard.setData(ClipboardData(
-                                        text: report.reportCode!));
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  'Report reference copied')));
-                                    }
-                                  })
-                          ]),
-                      Text(
-                          'Reported by ${report.reporterName ?? 'a community member'} · ${reportAge(report.date)}',
-                          style: theme.textTheme.bodySmall),
-                      const SizedBox(height: 24),
-                      const Divider(),
-                      const SizedBox(height: 24),
-                      Text('What’s happening',
-                          style: theme.textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      SelectableText(
-                          report.description ??
-                              'No additional description was provided.',
-                          style: theme.textTheme.bodyLarge),
-                      if (report.mediaRefrence.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        Text('Photos', style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                            height: 230,
-                            child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: report.mediaRefrence.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 12),
-                                itemBuilder: (context, index) => SizedBox(
-                                    width: 280,
-                                    child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(14),
-                                        child: Image.network(
-                                            report.mediaRefrence[index],
-                                            fit: BoxFit.cover,
-                                            semanticLabel:
-                                                'Issue photo ${index + 1}',
-                                            errorBuilder: (_, __, ___) => Container(
-                                                color: theme.colorScheme
-                                                    .surfaceContainerLow,
-                                                child: const Center(
-                                                    child: Text(
-                                                        'Photo unavailable'))))))))
-                      ],
-                      const SizedBox(height: 24),
-                      AppPanel(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(children: [
-                                  Icon(Icons.location_on_outlined,
-                                      color: theme.colorScheme.primary),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                      child: Text('Reported location',
-                                          style: theme.textTheme.titleMedium))
-                                ]),
-                                const SizedBox(height: 8),
-                                SelectableText(
-                                    report.location ?? 'Location not provided'),
-                                if (report.location?.isNotEmpty ?? false) ...[
-                                  const SizedBox(height: 8),
-                                  TextButton.icon(
-                                      onPressed: () =>
-                                          _openMap(report.location!),
-                                      icon: const Icon(Icons.open_in_new,
-                                          size: 18),
-                                      label: const Text('View in Maps'))
-                                ]
-                              ])),
-                      const SizedBox(height: 24),
-                      if (report.id != null) ...[
-                        ReportProgressPanel(
-                            reportId: report.id!,
-                            onLatestStatus: (status) {
-                              if (mounted && _latestStatus != status) {
-                                setState(() => _latestStatus = status);
-                              }
-                            }),
-                        const SizedBox(height: 24),
-                        ReportCommentsPanel(
-                            key: ValueKey('discussion-${report.id}'),
-                            reportId: report.id!),
-                        const SizedBox(height: 24),
-                      ],
-                      if (widget.onSupport != null)
-                        AsyncButton(
-                            label:
-                                '${report.upvotes ?? 0} supporters · ${supported ? 'Remove support' : 'Support this issue'}',
-                            icon: supported
-                                ? Icons.arrow_circle_up
-                                : Icons.arrow_circle_up_outlined,
-                            isLoading: _busy,
-                            onPressed: () async {
-                              setState(() => _busy = true);
-                              await widget.onSupport!();
-                              if (mounted) setState(() => _busy = false);
-                            }),
-                      if (widget.onDelete != null) ...[
-                        const SizedBox(height: 12),
-                        TextButton.icon(
-                            onPressed: _busy
-                                ? null
-                                : () async {
-                                    setState(() => _busy = true);
-                                    final deleted = await widget.onDelete!();
-                                    if (!context.mounted) return;
-                                    if (deleted) {
-                                      Navigator.pop(context);
-                                    } else {
-                                      setState(() => _busy = false);
-                                    }
-                                  },
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Delete my report'),
-                            style: TextButton.styleFrom(
-                                foregroundColor: theme.colorScheme.error))
-                      ],
-                    ]))));
+                        ]))),
+                const Divider(height: 1),
+                Expanded(
+                    child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 16),
+                              Wrap(
+                                  spacing: 12,
+                                  runSpacing: 8,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    StatusBadge(
+                                        status: ReportStatus.parse(
+                                            _latestStatus ?? report.status)),
+                                    Text(categoryLabel(report.category),
+                                        style: theme.textTheme.bodySmall)
+                                  ]),
+                              const SizedBox(height: 20),
+                              Text(report.title ?? 'Community report',
+                                  style: theme.textTheme.headlineSmall),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                  spacing: 12,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    Text(
+                                        report.reportCode ??
+                                            'Reference unavailable',
+                                        style: theme.textTheme.labelLarge),
+                                    if (report.reportCode != null)
+                                      IconButton(
+                                          tooltip: 'Copy report reference',
+                                          icon: const Icon(Icons.copy_outlined,
+                                              size: 19),
+                                          onPressed: () async {
+                                            await Clipboard.setData(
+                                                ClipboardData(
+                                                    text: report.reportCode!));
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Report reference copied')));
+                                            }
+                                          })
+                                  ]),
+                              Text(
+                                  'Reported by ${report.reporterName ?? 'a community member'} · ${reportAge(report.date)}',
+                                  style: theme.textTheme.bodySmall),
+                              const SizedBox(height: 24),
+                              const Divider(),
+                              const SizedBox(height: 24),
+                              Text('What’s happening',
+                                  style: theme.textTheme.titleMedium),
+                              const SizedBox(height: 8),
+                              SelectableText(
+                                  report.description ??
+                                      'No additional description was provided.',
+                                  style: theme.textTheme.bodyLarge),
+                              if (report.mediaRefrence.isNotEmpty) ...[
+                                const SizedBox(height: 24),
+                                Text('Photos',
+                                    style: theme.textTheme.titleMedium),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                    height: 230,
+                                    child: ListView.separated(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: report.mediaRefrence.length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(width: 12),
+                                        itemBuilder: (context, index) => SizedBox(
+                                            width: 280,
+                                            child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                child: Image.network(
+                                                    report.mediaRefrence[index],
+                                                    fit: BoxFit.cover,
+                                                    semanticLabel:
+                                                        'Issue photo ${index + 1}',
+                                                    errorBuilder: (_, __, ___) =>
+                                                        Container(
+                                                            color: theme
+                                                                .colorScheme
+                                                                .surfaceContainerLow,
+                                                            child: const Center(
+                                                                child: Text('Photo unavailable'))))))))
+                              ],
+                              const SizedBox(height: 24),
+                              AppPanel(
+                                  padding: const EdgeInsets.all(18),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(children: [
+                                          Icon(Icons.location_on_outlined,
+                                              color: theme.colorScheme.primary),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                              child: Text('Reported location',
+                                                  style: theme
+                                                      .textTheme.titleMedium))
+                                        ]),
+                                        const SizedBox(height: 8),
+                                        SelectableText(report.location ??
+                                            'Location not provided'),
+                                        if (report.location?.isNotEmpty ??
+                                            false) ...[
+                                          const SizedBox(height: 8),
+                                          TextButton.icon(
+                                              onPressed: () =>
+                                                  _openMap(report.location!),
+                                              icon: const Icon(
+                                                  Icons.open_in_new,
+                                                  size: 18),
+                                              label: const Text('View in Maps'))
+                                        ]
+                                      ])),
+                              const SizedBox(height: 24),
+                              if (report.id != null) ...[
+                                ReportProgressPanel(
+                                    reportId: report.id!,
+                                    onLatestStatus: (status) {
+                                      if (mounted && _latestStatus != status) {
+                                        setState(() => _latestStatus = status);
+                                      }
+                                    }),
+                                const SizedBox(height: 24),
+                                ReportCommentsPanel(
+                                    key: ValueKey('discussion-${report.id}'),
+                                    controller: _comments,
+                                    reportId: report.id!),
+                                const SizedBox(height: 24),
+                              ],
+                              if (widget.onSupport != null)
+                                AsyncButton(
+                                    label:
+                                        '${report.upvotes ?? 0} supporters · ${supported ? 'Remove support' : 'Support this issue'}',
+                                    icon: supported
+                                        ? Icons.arrow_circle_up
+                                        : Icons.arrow_circle_up_outlined,
+                                    isLoading: _busy,
+                                    onPressed: () async {
+                                      setState(() => _busy = true);
+                                      await widget.onSupport!();
+                                      if (mounted) {
+                                        setState(() => _busy = false);
+                                      }
+                                    }),
+                              if (widget.onDelete != null) ...[
+                                const SizedBox(height: 12),
+                                TextButton.icon(
+                                    onPressed: _busy
+                                        ? null
+                                        : () async {
+                                            setState(() => _busy = true);
+                                            final deleted =
+                                                await widget.onDelete!();
+                                            if (!context.mounted) return;
+                                            if (deleted) {
+                                              Navigator.pop(context);
+                                            } else {
+                                              setState(() => _busy = false);
+                                            }
+                                          },
+                                    icon: const Icon(Icons.delete_outline),
+                                    label: const Text('Delete my report'),
+                                    style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            theme.colorScheme.error))
+                              ],
+                            ]))),
+              ]))),
+    );
   }
 
   Future<void> _openMap(String location) async {

@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/civic_widgets.dart';
+import '../../../core/widgets/leave_guard.dart';
+import '../../../core/widgets/form_validation.dart';
+import '../../reports/application/report_comments_controller.dart';
 import '../../reports/domain/report_filters.dart';
 import '../../reports/widgets/report_card.dart';
 import '../../reports/widgets/report_progress_panel.dart';
@@ -36,6 +39,7 @@ class AuthorityReportDialog extends StatefulWidget {
 class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
   final _form = GlobalKey<FormState>();
   final _note = TextEditingController();
+  late final ReportCommentsController _comments;
   AuthorityDetail? _detail;
   String? _status;
   String? _error;
@@ -51,12 +55,21 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
   void initState() {
     super.initState();
     _session = widget.service.sessionId;
+    _comments = ReportCommentsController(reportId: widget.id)
+      ..load()
+      ..addListener(_changed);
     _reload();
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _note.dispose();
+    _comments.removeListener(_changed);
+    _comments.dispose();
     super.dispose();
   }
 
@@ -128,7 +141,7 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
     if (_busy ||
         _loading ||
         _mustReload ||
-        !_form.currentState!.validate() ||
+        !validateAndReveal(_form.currentState) ||
         _detail == null) {
       return;
     }
@@ -182,9 +195,19 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
     final theme = Theme.of(context);
     final editable = !_busy && !_loading && !_mustReload && !_uncertain;
     final item = _detail?.item;
-    return PopScope(
-        canPop: !_busy,
-        child: Dialog(
+    return LeaveGuard(
+        dirty: _comments.draft.isNotEmpty ||
+            (!_acknowledged &&
+                (_note.text.isNotEmpty ||
+                    (item != null && _status != item.report.status))),
+        busy: _busy || _comments.busy,
+        unresolved: (_uncertain && _session == widget.service.sessionId) ||
+            (!_comments.blocked &&
+                (_comments.uncertain || _comments.pendingRemoval != null)),
+        title: 'Discard report changes?',
+        message:
+            'Your unpublished service note or comment will be discarded. Published updates will remain on the report.',
+        builder: (context, _) => Dialog(
             insetPadding: EdgeInsets.symmetric(
                 horizontal: MediaQuery.sizeOf(context).width < 600 ? 12 : 40,
                 vertical: 24),
@@ -208,13 +231,16 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                 icon: const Icon(Icons.refresh)),
                             IconButton(
                                 tooltip: 'Close service report',
-                                onPressed:
-                                    _busy ? null : () => Navigator.pop(context),
+                                onPressed: _busy
+                                    ? null
+                                    : () => Navigator.maybePop(context),
                                 icon: const Icon(Icons.close))
                           ])),
                       const Divider(height: 1),
                       Expanded(
                           child: SingleChildScrollView(
+                              keyboardDismissBehavior:
+                                  ScrollViewKeyboardDismissBehavior.onDrag,
                               padding: const EdgeInsets.all(24),
                               child: Column(
                                   crossAxisAlignment:
@@ -398,8 +424,8 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                                     hintText:
                                                         'For example: A crew inspected the site. Repairs are scheduled for Thursday.',
                                                     alignLabelWithHint: true),
-                                                onChanged: (_) =>
-                                                    _requestId = null,
+                                                onChanged: (_) => setState(
+                                                    () => _requestId = null),
                                                 validator: (value) => value ==
                                                             null ||
                                                         value.trim().length < 10
@@ -418,6 +444,7 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                       ReportCommentsPanel(
                                           key: ValueKey(
                                               'discussion-${widget.id}'),
+                                          controller: _comments,
                                           reportId: widget.id),
                                     ],
                                   ]))),
@@ -433,7 +460,7 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                 TextButton(
                                     onPressed: _busy
                                         ? null
-                                        : () => Navigator.pop(context),
+                                        : () => Navigator.maybePop(context),
                                     child: const Text('Close')),
                                 FilledButton.icon(
                                     onPressed: item == null ||

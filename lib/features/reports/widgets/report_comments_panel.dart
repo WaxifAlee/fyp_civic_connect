@@ -5,9 +5,11 @@ import '../application/report_comments_controller.dart';
 import '../data/report_comments_service.dart';
 
 class ReportCommentsPanel extends StatefulWidget {
-  const ReportCommentsPanel({super.key, required this.reportId, this.service});
+  const ReportCommentsPanel(
+      {super.key, required this.reportId, this.service, this.controller});
   final String reportId;
   final ReportCommentsService? service;
+  final ReportCommentsController? controller;
   @override
   State<ReportCommentsPanel> createState() => _ReportCommentsPanelState();
 }
@@ -22,10 +24,11 @@ class _ReportCommentsPanelState extends State<ReportCommentsPanel> {
   }
 
   void _start() {
-    _controller = ReportCommentsController(
-        reportId: widget.reportId, service: widget.service);
+    _controller = widget.controller ??
+        ReportCommentsController(
+            reportId: widget.reportId, service: widget.service);
     _controller.addListener(_changed);
-    _controller.load();
+    if (widget.controller == null) _controller.load();
   }
 
   void _changed() {
@@ -42,9 +45,10 @@ class _ReportCommentsPanelState extends State<ReportCommentsPanel> {
   void didUpdateWidget(ReportCommentsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.reportId != widget.reportId ||
-        oldWidget.service != widget.service) {
+        oldWidget.service != widget.service ||
+        oldWidget.controller != widget.controller) {
       _controller.removeListener(_changed);
-      _controller.dispose();
+      if (oldWidget.controller == null) _controller.dispose();
       _draft.clear();
       _start();
     }
@@ -53,7 +57,7 @@ class _ReportCommentsPanelState extends State<ReportCommentsPanel> {
   @override
   void dispose() {
     _controller.removeListener(_changed);
-    _controller.dispose();
+    if (widget.controller == null) _controller.dispose();
     _draft.dispose();
     super.dispose();
   }

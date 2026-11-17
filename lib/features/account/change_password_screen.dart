@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/services/supabase_client.dart';
 import 'package:fyp_civic_connect/utils/validators.dart';
@@ -53,7 +54,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _currentError = null;
       _newError = null;
     });
-    if (!_formKey.currentState!.validate()) return;
+    if (!validateAndReveal(_formKey.currentState)) return;
     FocusScope.of(context).unfocus();
     // Passwords are deliberately passed through without trimming or rewriting.
     final currentPassword = _currentPassword.text;

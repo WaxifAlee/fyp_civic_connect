@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 
@@ -38,7 +39,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   }
 
   Future<void> _updatePassword() async {
-    if (_busy || !_hasSession || !_form.currentState!.validate()) {
+    if (_busy || !_hasSession || !validateAndReveal(_form.currentState)) {
       return;
     }
     final userId = widget.authService.currentUser?.id;

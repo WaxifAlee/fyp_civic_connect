@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 
 import 'auth_fields.dart';
 import 'auth_flow.dart';
@@ -37,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signIn() async {
-    if (_busy || !_formKey.currentState!.validate()) {
+    if (_busy || !validateAndReveal(_formKey.currentState)) {
       return;
     }
     FocusScope.of(context).unfocus();

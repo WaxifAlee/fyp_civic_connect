@@ -5,6 +5,8 @@ import 'package:uuid/uuid.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/app/app_shell.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/leave_guard.dart';
+import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 import 'package:fyp_civic_connect/models/citizen_user.dart';
 import 'package:fyp_civic_connect/services/user_service.dart';
 import 'package:fyp_civic_connect/services/citizen_account_service.dart';
@@ -36,6 +38,11 @@ class _ProfileState extends State<Profile> {
   String? _saveError;
 
   bool get _isPreview => AppSession.instance.isPreview;
+  bool get _hasChanges =>
+      _editing &&
+      (_name.text != (_citizen?.fullName ?? '') ||
+          _phone.text != (_citizen?.phone ?? '') ||
+          _location.text != (_citizen?.location ?? ''));
 
   @override
   void initState() {
@@ -188,7 +195,9 @@ class _ProfileState extends State<Profile> {
   }
 
   Future<void> _saveProfile() async {
-    if (_saving || _uploadingPhoto || !_formKey.currentState!.validate()) {
+    if (_saving ||
+        _uploadingPhoto ||
+        !validateAndReveal(_formKey.currentState)) {
       return;
     }
     FocusScope.of(context).unfocus();
@@ -261,7 +270,9 @@ class _ProfileState extends State<Profile> {
         content: Text(
           preview
               ? 'Your demo edits will be discarded.'
-              : 'You can sign in again to view your reports and account.',
+              : _hasChanges
+                  ? 'Your unsaved account changes will be discarded. You can sign in again to view your reports and account.'
+                  : 'You can sign in again to view your reports and account.',
         ),
         actions: [
           TextButton(
@@ -356,94 +367,106 @@ class _ProfileState extends State<Profile> {
 
   @override
   Widget build(BuildContext context) {
-    return AppShell(
-      currentIndex: 4,
-      child: CivicPage(
-        title: 'Your account',
-        description:
-            'Manage your details and make CivicConnect feel like home.',
-        children: [
-          if (_isPreview)
-            const _AccountNotice(
-              icon: Icons.visibility_outlined,
-              message: 'Preview mode · Demo citizen. Changes stay in this '
-                  'preview and never update a real account.',
-            ),
-          if (_loading)
-            const AppPanel(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading your account…'),
-                  ],
-                ),
-              ),
-            )
-          else if (_loadError != null)
-            AppPanel(
-              child: EmptyState(
-                icon: Icons.person_outline,
-                title: 'Account unavailable',
-                message: _loadError!,
-                actionLabel: 'Try again',
-                onAction: _loadProfile,
-              ),
-            )
-          else ...[
-            Entrance(child: _overview(context)),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final details = _details(context);
-                final preferences = _preferences(context);
-                final largeText =
-                    MediaQuery.textScalerOf(context).scale(16) > 22;
-                if (constraints.maxWidth < 840 || largeText) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+    return ListenableBuilder(
+        listenable: Listenable.merge([_name, _phone, _location]),
+        builder: (context, _) => LeaveGuard(
+            dirty: _hasChanges,
+            busy: _saving || _uploadingPhoto || _signingOut,
+            title: 'Discard account changes?',
+            message:
+                'Your account changes have not been saved. Leaving will discard these edits.',
+            builder: (context, confirmLeave) => AppShell(
+                  onBeforeLeave: confirmLeave,
+                  currentIndex: 4,
+                  child: CivicPage(
+                    title: 'Your account',
+                    description:
+                        'Manage your details and make CivicConnect feel like home.',
                     children: [
-                      details,
-                      const SizedBox(height: 24),
-                      preferences,
+                      if (_isPreview)
+                        const _AccountNotice(
+                          icon: Icons.visibility_outlined,
+                          message:
+                              'Preview mode · Demo citizen. Changes stay in this '
+                              'preview and never update a real account.',
+                        ),
+                      if (_loading)
+                        const AppPanel(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Column(
+                              children: [
+                                CircularProgressIndicator(),
+                                SizedBox(height: 16),
+                                Text('Loading your account…'),
+                              ],
+                            ),
+                          ),
+                        )
+                      else if (_loadError != null)
+                        AppPanel(
+                          child: EmptyState(
+                            icon: Icons.person_outline,
+                            title: 'Account unavailable',
+                            message: _loadError!,
+                            actionLabel: 'Try again',
+                            onAction: _loadProfile,
+                          ),
+                        )
+                      else ...[
+                        Entrance(child: _overview(context)),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final details = _details(context);
+                            final preferences = _preferences(context);
+                            final largeText =
+                                MediaQuery.textScalerOf(context).scale(16) > 22;
+                            if (constraints.maxWidth < 840 || largeText) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  details,
+                                  const SizedBox(height: 24),
+                                  preferences,
+                                ],
+                              );
+                            }
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 3, child: details),
+                                const SizedBox(width: 24),
+                                Expanded(flex: 2, child: preferences),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                      AppPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SectionHeading(
+                              title: 'Your session',
+                              subtitle:
+                                  'Keep your account safe on shared devices.',
+                            ),
+                            const SizedBox(height: 16),
+                            AsyncButton(
+                              label: _isPreview ? 'Leave preview' : 'Sign out',
+                              icon: Icons.logout_outlined,
+                              isLoading: _signingOut,
+                              onPressed:
+                                  _saving || _signingOut || _uploadingPhoto
+                                      ? null
+                                      : _confirmSignOut,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 3, child: details),
-                    const SizedBox(width: 24),
-                    Expanded(flex: 2, child: preferences),
-                  ],
-                );
-              },
-            ),
-          ],
-          AppPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SectionHeading(
-                  title: 'Your session',
-                  subtitle: 'Keep your account safe on shared devices.',
-                ),
-                const SizedBox(height: 16),
-                AsyncButton(
-                  label: _isPreview ? 'Leave preview' : 'Sign out',
-                  icon: Icons.logout_outlined,
-                  isLoading: _signingOut,
-                  onPressed: _saving || _signingOut || _uploadingPhoto
-                      ? null
-                      : _confirmSignOut,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+                  ),
+                )));
   }
 
   Widget _overview(BuildContext context) {

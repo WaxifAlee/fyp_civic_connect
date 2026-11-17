@@ -42,15 +42,62 @@ const _destinations = [
   ),
 ];
 
-class AppShell extends StatelessWidget {
-  const AppShell({super.key, required this.currentIndex, required this.child});
+class AppShell extends StatefulWidget {
+  const AppShell(
+      {super.key,
+      required this.currentIndex,
+      required this.child,
+      this.onBeforeLeave});
   final int currentIndex;
   final Widget child;
+  final Future<bool> Function()? onBeforeLeave;
+
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell> {
+  final _scroll = ScrollController();
+  bool _leaving = false;
+  int get currentIndex => widget.currentIndex;
+  Widget get child => widget.child;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _canLeave() async {
+    if (_leaving) return false;
+    _leaving = true;
+    try {
+      return await widget.onBeforeLeave?.call() ?? true;
+    } finally {
+      _leaving = false;
+    }
+  }
+
+  Future<void> _replace(String route) async {
+    if (!await _canLeave() || !mounted) return;
+    Navigator.pushReplacementNamed(context, route);
+  }
 
   void _navigate(BuildContext context, int index) {
     final route = _destinations[index].route;
-    if (ModalRoute.of(context)?.settings.name != route) {
-      Navigator.pushReplacementNamed(context, route);
+    if (index == currentIndex) {
+      FocusScope.of(context).unfocus();
+      if (_scroll.hasClients) {
+        if (MediaQuery.disableAnimationsOf(context)) {
+          _scroll.jumpTo(0);
+        } else {
+          _scroll.animateTo(0,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic);
+        }
+      }
+    } else {
+      _replace(route);
     }
   }
 
@@ -108,8 +155,7 @@ class AppShell extends StatelessWidget {
                       if (!rail)
                         IconButton(
                             tooltip: 'Authority workspace',
-                            onPressed: () => Navigator.pushReplacementNamed(
-                                context, '/authority'),
+                            onPressed: () => _replace('/authority'),
                             icon: const Icon(
                                 Icons.admin_panel_settings_outlined)),
                       IconButton(
@@ -168,14 +214,19 @@ class AppShell extends StatelessWidget {
                                             color:
                                                 colors.onSecondaryContainer))),
                             TextButton(
-                                onPressed: () {
+                                onPressed: () async {
+                                  if (!await _canLeave() || !context.mounted) {
+                                    return;
+                                  }
                                   AppSession.instance.leavePreview();
                                   Navigator.pushNamedAndRemoveUntil(
                                       context, '/', (_) => false);
                                 },
                                 child: const Text('Exit demo'))
                           ]))),
-                Expanded(child: child),
+                Expanded(
+                    child: PrimaryScrollController(
+                        controller: _scroll, child: child)),
               ])),
             ])),
         bottomNavigationBar: rail
@@ -236,14 +287,12 @@ class AppShell extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: wide
             ? TextButton.icon(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/authority'),
+                onPressed: () => _replace('/authority'),
                 icon: const Icon(Icons.admin_panel_settings_outlined),
                 label: const Text('Authority workspace'))
             : IconButton(
                 tooltip: 'Authority workspace',
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/authority'),
+                onPressed: () => _replace('/authority'),
                 icon: const Icon(Icons.admin_panel_settings_outlined)),
       ),
       if (wide)
@@ -298,7 +347,7 @@ class AppShell extends StatelessWidget {
         button: true,
         label: d.label,
         child: Tooltip(
-            message: wide ? '' : d.label,
+            message: selected ? 'Back to top' : (wide ? '' : d.label),
             child: Material(
                 color: selected ? colors.primary : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),

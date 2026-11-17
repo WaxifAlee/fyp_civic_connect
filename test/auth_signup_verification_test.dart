@@ -107,6 +107,29 @@ void main() {
   tearDown(() => AppSession.instance.leavePreview());
 
   testWidgets(
+      'invalid signup reveals and focuses the first field that needs correction',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final auth = SignupAuth();
+    await tester.pumpWidget(app(auth));
+    await tester.pumpAndSettle();
+    await enter(tester, 'Email address', 'citizen@example.com');
+    await enter(tester, 'Password', 'Password123!');
+    await enter(tester, 'Confirm password', 'Password123!');
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    final editable = tester.widget<EditableText>(find.descendant(
+        of: field('Full name'), matching: find.byType(EditableText)));
+    expect(editable.focusNode.hasFocus, isTrue);
+    expect(field('Full name').hitTestable(), findsOneWidget);
+    expect(auth.submittedEmail, isNull);
+  });
+
+  testWidgets(
       'empty signup identities lead to neutral inbox and sign-in guidance',
       (tester) async {
     tester.view.physicalSize = const Size(900, 1800);

@@ -32,7 +32,7 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 | Area | What the application provides |
 | --- | --- |
 | Overview | Actionable personal report counts, recent activity, and status-filtered report tracking, including closed reports. |
-| Explore | Compact search and filter controls, category/status/sort options in a sheet, visible active choices, refresh, and paged display. |
+| Explore | Compact search and filter controls, category/status/sort options in a sheet, visible active choices, pull-to-refresh, and paged display. |
 | Reporting | Department selection, validated photos, precise map pins or manual/GPS locations, upload progress, reference codes, and recovery of interrupted submissions. |
 | Community support | Toggle support for a report; displayed counts follow the committed database transaction. |
 | Report discussions | Public comments shared across citizen and authority views, newest-first pagination, safe posting retries, and confirmed removal of your own comments. |
@@ -40,13 +40,17 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 | Authority workspace | Department-scoped review queue, administrator filters, bounded pagination, photos/location context, versioned status updates, and immutable public progress history. |
 | Accounts | Email/password registration, email verification, password reset, profile editing, and password changes with reauthentication. |
 | Appearance | Evergreen and warm neutral surfaces, bundled Public Sans, outlined icons, persistent light/dark/system settings, and reduced-motion support. |
-| Responsive navigation | Labeled bottom navigation on phones, a compact rail on tablets, and a sidebar on wider screens. |
+| Responsive navigation | Labeled bottom navigation on phones, a compact rail on tablets, and a sidebar on wider screens. Select the current destination again to return to the top. |
 
 Departments cover municipal services, public safety, fire & emergency, electricity & gas, and roads & infrastructure. Status labels include Submitted, In progress, Resolved, and Closed.
 
 Notifications currently show an empty state and a link to My Reports. Service updates are available in report details; there is no push delivery service or live notification feed. The [authority workspace guide](docs/authority-workspace.md) covers staff provisioning, permissions, report triage, and progress publishing.
 
 Open a report to read or join its **Comments** discussion. Verified accounts can post up to 1,000 characters; the discussion shows display names and local timestamps. Use refresh to load new activity and **Load older comments** for earlier posts. You can remove your own comments after confirmation. Comments and official service updates remain separate, and posting a comment does not change a report’s status.
+
+Pull down at the top of **Overview**, **Explore**, **My Reports**, or the **authority queue** to refresh. Refresh buttons remain available for desktop and keyboard use. Previously loaded reports stay visible during refresh and connection failures; they are the last loaded snapshot until a refresh succeeds.
+
+Report, account, service-note and comment drafts ask for confirmation before being discarded. Report details keep their close control above the scrolling discussion. An unconfirmed comment or service update stays open for a safe retry, preserving the original action. These protections last while the application is open; unsubmitted form and comment drafts are not restored after restarting it. Interrupted report submissions use the separate persistent recovery journal.
 
 <details>
 <summary>Compact Explore and report discussion previews</summary>

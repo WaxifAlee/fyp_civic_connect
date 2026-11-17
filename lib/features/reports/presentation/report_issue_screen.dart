@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/app/app_shell.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/leave_guard.dart';
 import 'package:fyp_civic_connect/features/reports/data/report_submission_service.dart';
 import 'package:fyp_civic_connect/features/reports/domain/report_filters.dart';
 import 'package:fyp_civic_connect/features/reports/presentation/map_location_picker.dart';
@@ -628,106 +629,119 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: AppSession.instance,
-      builder: (context, _) => AppShell(
-        currentIndex: 2,
-        child: CivicPage(
-          title: 'Report an issue',
-          description:
-              'Help improve your neighbourhood, one clear report at a time.',
-          maxWidth: 960,
-          children: [
-            if (_result != null)
-              _success(_result!)
-            else ...[
-              if (_preview) ...[
-                const _ReportNotice(
-                  icon: Icons.visibility_outlined,
-                  title: 'Preview mode',
-                  message: 'Try the complete form with your own photos. '
-                      'The confirmation is simulated locally; nothing is submitted.',
-                ),
-              ] else if (!SupabaseService.isConfigured) ...[
-                const _ReportNotice(
-                  icon: Icons.cloud_off_outlined,
-                  title: 'Photo uploads are not available yet',
-                  message:
-                      'You can prepare a report here. Ask the CivicConnect '
-                      'administrator to enable photo uploads before submitting.',
+      listenable: Listenable.merge([AppSession.instance, _title, _description]),
+      builder: (context, _) => LeaveGuard(
+        dirty: _result == null &&
+            (_title.text.isNotEmpty ||
+                _description.text.isNotEmpty ||
+                _images.isNotEmpty ||
+                _category != null ||
+                _location != null),
+        busy: _submitting || _recovering || _readingPhotos,
+        title: 'Discard report draft?',
+        message:
+            'Your report has not been submitted. Leaving will discard the details, photos and location in this draft.',
+        builder: (context, confirmLeave) => AppShell(
+          onBeforeLeave: confirmLeave,
+          currentIndex: 2,
+          child: CivicPage(
+            title: 'Report an issue',
+            description:
+                'Help improve your neighbourhood, one clear report at a time.',
+            maxWidth: 960,
+            children: [
+              if (_result != null)
+                _success(_result!)
+              else ...[
+                if (_preview) ...[
+                  const _ReportNotice(
+                    icon: Icons.visibility_outlined,
+                    title: 'Preview mode',
+                    message: 'Try the complete form with your own photos. '
+                        'The confirmation is simulated locally; nothing is submitted.',
+                  ),
+                ] else if (!SupabaseService.isConfigured) ...[
+                  const _ReportNotice(
+                    icon: Icons.cloud_off_outlined,
+                    title: 'Photo uploads are not available yet',
+                    message:
+                        'You can prepare a report here. Ask the CivicConnect '
+                        'administrator to enable photo uploads before submitting.',
+                  ),
+                ],
+                if (!_preview &&
+                    (_pendingCount == null ||
+                        _pendingCount! > 0 ||
+                        _recoveryMessage != null ||
+                        _recoveryError != null))
+                  _savedSubmissions(),
+                Form(
+                  key: _formKey,
+                  autovalidateMode: _validate
+                      ? AutovalidateMode.onUserInteraction
+                      : AutovalidateMode.disabled,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null) ...[
+                        Focus(
+                          key: _feedbackKey,
+                          focusNode: _feedbackFocus,
+                          child: _ReportNotice(
+                            icon: Icons.error_outline,
+                            title: 'Your report needs attention',
+                            message: _error!,
+                            isError: true,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      _details(),
+                      const SizedBox(height: 24),
+                      _photos(),
+                      const SizedBox(height: 24),
+                      _locationSection(),
+                      const SizedBox(height: 24),
+                      if (_submitting) ...[
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(_progressMessage),
+                        ),
+                        const SizedBox(height: 12),
+                        LinearProgressIndicator(
+                          value: _preview ? null : _progress,
+                          semanticsLabel: _progressMessage,
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      Text(
+                        _preview
+                            ? 'Preview shows how confirmation looks. It does '
+                                'not send a report.'
+                            : 'Your report’s description, photos and location '
+                                'will be visible to the community. Leave out '
+                                'private information.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      AsyncButton(
+                        label:
+                            _preview ? 'Preview confirmation' : 'Submit report',
+                        icon: _preview
+                            ? Icons.visibility_outlined
+                            : Icons.send_outlined,
+                        isLoading: _submitting,
+                        onPressed: _submitting || _readingPhotos || _recovering
+                            ? null
+                            : _submit,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ],
-              if (!_preview &&
-                  (_pendingCount == null ||
-                      _pendingCount! > 0 ||
-                      _recoveryMessage != null ||
-                      _recoveryError != null))
-                _savedSubmissions(),
-              Form(
-                key: _formKey,
-                autovalidateMode: _validate
-                    ? AutovalidateMode.onUserInteraction
-                    : AutovalidateMode.disabled,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_error != null) ...[
-                      Focus(
-                        key: _feedbackKey,
-                        focusNode: _feedbackFocus,
-                        child: _ReportNotice(
-                          icon: Icons.error_outline,
-                          title: 'Your report needs attention',
-                          message: _error!,
-                          isError: true,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    _details(),
-                    const SizedBox(height: 24),
-                    _photos(),
-                    const SizedBox(height: 24),
-                    _locationSection(),
-                    const SizedBox(height: 24),
-                    if (_submitting) ...[
-                      Semantics(
-                        liveRegion: true,
-                        child: Text(_progressMessage),
-                      ),
-                      const SizedBox(height: 12),
-                      LinearProgressIndicator(
-                        value: _preview ? null : _progress,
-                        semanticsLabel: _progressMessage,
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    Text(
-                      _preview
-                          ? 'Preview shows how confirmation looks. It does '
-                              'not send a report.'
-                          : 'Your report’s description, photos and location '
-                              'will be visible to the community. Leave out '
-                              'private information.',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 16),
-                    AsyncButton(
-                      label:
-                          _preview ? 'Preview confirmation' : 'Submit report',
-                      icon: _preview
-                          ? Icons.visibility_outlined
-                          : Icons.send_outlined,
-                      isLoading: _submitting,
-                      onPressed: _submitting || _readingPhotos || _recovering
-                          ? null
-                          : _submit,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -45,6 +45,8 @@ class _DashboardPageState extends State<DashboardPage> {
         child: ListenableBuilder(
             listenable: _controller,
             builder: (context, _) => CivicPage(
+                    onRefresh: _controller.load,
+                    refreshing: _controller.loading && _controller.hasLoaded,
                     title: '$greeting, $name.',
                     description:
                         'Here’s what’s happening in your corner of the community.',
@@ -167,7 +169,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ? 2
                   : 1;
       final width = (c.maxWidth - (columns - 1) * 16) / columns;
-      final available = !_controller.loading && _controller.error == null;
+      final available = _controller.hasLoaded;
       return Wrap(spacing: 16, runSpacing: 16, children: [
         for (final metric in metrics)
           SizedBox(
@@ -223,9 +225,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 iconAlignment: IconAlignment.end,
                 label: const Text('View all'))),
         const SizedBox(height: 18),
-        if (_controller.loading)
+        if (_controller.loading && !_controller.hasLoaded)
           const LoadingState()
-        else if (_controller.error != null)
+        else if (_controller.error != null && !_controller.hasLoaded)
           AppPanel(
               child: EmptyState(
                   icon: Icons.cloud_off_outlined,

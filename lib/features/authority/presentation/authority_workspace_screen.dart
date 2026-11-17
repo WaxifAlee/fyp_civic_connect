@@ -42,6 +42,13 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
     _controller.reset();
   }
 
+  Future<void> _refresh() {
+    _debounce?.cancel();
+    return _search.text == _controller.query
+        ? _controller.load(retainPage: true)
+        : _controller.load(query: _search.text);
+  }
+
   void _review(AuthorityReport item) => showAuthorityReport(context,
       id: item.report.id!,
       service: _controller.service,
@@ -125,6 +132,8 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
               builder: (context, _) {
                 final access = _controller.access;
                 return CivicPage(
+                    onRefresh: _refresh,
+                    refreshing: _controller.refreshing,
                     maxWidth: 1320,
                     title: 'Service report queue',
                     description: access == null
@@ -132,9 +141,7 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
                         : '${access.label} · ${access.isAdmin ? 'Administrator' : 'Department team'}',
                     actions: [
                       OutlinedButton.icon(
-                          onPressed: _controller.loading
-                              ? null
-                              : () => _controller.load(),
+                          onPressed: _controller.loading ? null : _refresh,
                           icon: const Icon(Icons.refresh, size: 18),
                           label: const Text('Refresh queue'))
                     ],
@@ -167,34 +174,45 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
                                   const SizedBox(height: 20),
                                   _filters(),
                                   const SizedBox(height: 20),
-                                  if (_controller.loading)
+                                  if (_controller.loading &&
+                                      !_controller.refreshing)
                                     const SizedBox(
                                         height: 260,
                                         child: Center(child: LoadingState()))
-                                  else if (_controller.error != null)
+                                  else if (_controller.error != null &&
+                                      !_controller.retainingPage)
                                     _failure()
-                                  else if (_controller.page?.reports.isEmpty ??
-                                      true)
-                                    EmptyState(
-                                        icon: Icons.inbox_outlined,
-                                        title: (_controller.page
-                                                        ?.counts['total'] ??
-                                                    0) ==
-                                                0
-                                            ? 'No reports in this workspace'
-                                            : 'No reports match these filters',
-                                        message: (_controller.page
-                                                        ?.counts['total'] ??
-                                                    0) ==
-                                                0
-                                            ? 'New citizen reports for your departments will appear here. Refresh to check for new submissions.'
-                                            : 'Try another reference, search term, department or status.',
-                                        actionLabel: 'Clear filters',
-                                        onAction: _reset)
                                   else ...[
-                                    _queue(),
-                                    const SizedBox(height: 20),
-                                    _pagination()
+                                    if (_controller.error != null)
+                                      Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 16),
+                                          child: InlineNotice(
+                                              message: _controller.error!,
+                                              isError: true)),
+                                    if (_controller.page?.reports.isEmpty ??
+                                        true)
+                                      EmptyState(
+                                          icon: Icons.inbox_outlined,
+                                          title: (_controller.page
+                                                          ?.counts['total'] ??
+                                                      0) ==
+                                                  0
+                                              ? 'No reports in this workspace'
+                                              : 'No reports match these filters',
+                                          message: (_controller.page
+                                                          ?.counts['total'] ??
+                                                      0) ==
+                                                  0
+                                              ? 'New citizen reports for your departments will appear here. Refresh to check for new submissions.'
+                                              : 'Try another reference, search term, department or status.',
+                                          actionLabel: 'Clear filters',
+                                          onAction: _reset)
+                                    else ...[
+                                      _queue(),
+                                      const SizedBox(height: 20),
+                                      _pagination()
+                                    ],
                                   ],
                                 ])),
                         Text(
@@ -266,8 +284,12 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
                                       ]),
                                       const SizedBox(height: 14),
                                       Text(
-                                          _controller.loading ||
-                                                  _controller.error != null
+                                          (_controller.loading &&
+                                                      !_controller
+                                                          .refreshing) ||
+                                                  (_controller.error != null &&
+                                                      !_controller
+                                                          .retainingPage)
                                               ? '—'
                                               : '${_controller.page?.counts[status ?? 'total'] ?? 0}',
                                           style:
@@ -286,12 +308,15 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
         final search = TextField(
             controller: _search,
             maxLength: 120,
+            textInputAction: TextInputAction.search,
             onChanged: (value) {
+              setState(() {});
               _debounce?.cancel();
               _debounce = Timer(const Duration(milliseconds: 350),
                   () => _controller.load(query: value));
             },
             onSubmitted: (value) {
+              FocusScope.of(context).unfocus();
               _debounce?.cancel();
               _controller.load(query: value);
             },

@@ -72,6 +72,8 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
                     sort: _sort)
                 .apply(_controller.reports);
             return CivicPage(
+                onRefresh: _controller.load,
+                refreshing: _controller.loading && _controller.hasLoaded,
                 title: widget.mine ? 'My reports' : 'Explore your community',
                 description: widget.mine
                     ? 'Every report is a step toward a better neighbourhood. Follow yours here.'
@@ -89,9 +91,11 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
                 ],
                 children: [
                   _filters(context),
-                  if (_controller.loading)
+                  if (_controller.error != null && _controller.hasLoaded)
+                    InlineNotice(message: _controller.error!, isError: true),
+                  if (_controller.loading && !_controller.hasLoaded)
                     const LoadingState()
-                  else if (_controller.error != null)
+                  else if (_controller.error != null && !_controller.hasLoaded)
                     AppPanel(
                         child: EmptyState(
                             icon: Icons.wifi_off_outlined,
