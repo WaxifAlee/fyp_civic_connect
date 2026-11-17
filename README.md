@@ -33,7 +33,7 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 | --- | --- |
 | Overview | Personal report counts, recent activity, and guidance for creating a report. |
 | Explore | Report cards and details, combined search/category/status filters, sorting, refresh, and paged display. |
-| Reporting | Department selection, validated photos, a location picker, upload progress, reference codes, and recovery of interrupted submissions. |
+| Reporting | Department selection, validated photos, precise map pins or manual/GPS locations, upload progress, reference codes, and recovery of interrupted submissions. |
 | Community support | Toggle support for a report; displayed counts follow the committed database transaction. |
 | My Reports | Review personal submissions and confirm deletion of reports owned by the signed-in citizen. |
 | Accounts | Email/password registration, email verification, password reset, profile editing, and password changes with reauthentication. |
@@ -115,7 +115,7 @@ Fill in your project URL and **public publishable key** from Supabase's API sett
 | `PREVIEW_MODE` | `false` | Use local sample data and skip hosted services. |
 | `SUPABASE_URL` | Empty | Hosted project URL, required for real sessions. |
 | `SUPABASE_PUBLISHABLE_KEY` | Empty | Public client key. The older `SUPABASE_ANON_KEY` name is also accepted. |
-| `GOOGLE_MAPS_ENABLED` | `false` | Enable the interactive map after platform setup. |
+| `GOOGLE_MAPS_ENABLED` | Native: `true`; web: `false` | Show the interactive map on supported targets. Web requires its Maps JavaScript SDK; use `false` to keep coordinate/GPS entry only. |
 
 Never put a secret key, service-role key, database password, or Supabase access token in client configuration.
 
@@ -141,9 +141,11 @@ See [Backend operations](docs/backend.md) for the schema, permissions, email set
 
 ## Location and native prerequisites
 
-The coordinate picker works without a Maps SDK. Manual coordinates, GPS positions, and map taps all use the same [Fateh Jang service polygon](lib/features/reports/data/report_submission_service.dart). GPS permission is requested only after choosing **Use current location**.
+On Android and iOS, **Choose on map** opens an interactive map. Tap to place a pin, touch and hold it to drag, and zoom in for a precise location. **Confirm location** saves the selected coordinates back to the report form; **Cancel** preserves its previous location. Editing a location reopens the existing pin. Pins outside the service area cannot be confirmed.
 
-To enable the interactive map, configure the target platform first, then include:
+Use **Use coordinates instead** for manual entry, or **Use current location** for GPS. All entry methods use the same [Fateh Jang service polygon](lib/features/reports/data/report_submission_service.dart), and opening the picker never requests GPS permission. Preview keeps coordinate entry offline and does not initialize a map.
+
+Native maps are enabled by default and require a valid, restricted platform key. To opt in on web after configuring its SDK, include:
 
 ```bash
 flutter run --dart-define=GOOGLE_MAPS_ENABLED=true
@@ -157,7 +159,7 @@ Include `--dart-define-from-file=config/backend.local.json` when testing real up
 | Android | Install the Android SDK and JDK 17. Review Maps metadata in [AndroidManifest.xml](android/app/src/main/AndroidManifest.xml) and apply your deployment's restricted key. The manifest declares internet and foreground location access, without background location. |
 | iOS | Use macOS/Xcode and complete Supabase callback and Maps platform setup. Review the Maps key in [AppDelegate.swift](ios/Runner/AppDelegate.swift) and camera, photo-library, and foreground-location descriptions in [Info.plist](ios/Runner/Info.plist). |
 
-Keep manual coordinate entry available when maps cannot load. Existing native Maps key entries must be reviewed for your project and platform restrictions before deployment.
+Set `GOOGLE_MAPS_ENABLED=false` to disable maps for a deployment; manual and GPS entry remain available. Existing native Maps key entries must be reviewed for your project and platform restrictions before deployment.
 
 <details>
 <summary>Android build tool versions</summary>

@@ -463,7 +463,8 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
         children: [
           const SectionHeading(
             title: 'Location',
-            subtitle: 'Where is the issue? We currently serve Fateh Jang.',
+            subtitle: 'Drop a map pin, use GPS, or enter coordinates. '
+                'We currently serve Fateh Jang.',
           ),
           const SizedBox(height: 24),
           TextFormField(
@@ -497,7 +498,13 @@ class _ReportIssueScreenState extends State<ReportIssueScreen> {
               onPressed: _submitting ? null : _chooseLocation,
               icon: const Icon(Icons.map_outlined),
               label: Text(
-                _location == null ? 'Choose location' : 'Change location',
+                _location != null
+                    ? 'Change location'
+                    : !_preview &&
+                            MapLocationPicker.mapsEnabledByDefault &&
+                            MapLocationPicker.supportsMaps
+                        ? 'Choose on map'
+                        : 'Choose location',
               ),
               style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
             ),

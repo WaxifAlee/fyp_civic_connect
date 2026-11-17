@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
@@ -7,19 +8,27 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 /// Returns a validated [LatLng] through Navigator.pop.
-/// Enable interactive maps only after configuring the platform Maps SDK:
-/// --dart-define=GOOGLE_MAPS_ENABLED=true. Coordinates always remain available.
+/// Native maps are enabled by default. Web requires its Maps JavaScript SDK
+/// and GOOGLE_MAPS_ENABLED=true. Manual entry always remains available.
 class MapLocationPicker extends StatefulWidget {
   const MapLocationPicker({
     super.key,
     this.initialLocation,
     this.isPreview = false,
-    this.mapsEnabled = const bool.fromEnvironment('GOOGLE_MAPS_ENABLED'),
+    this.mapsEnabled = mapsEnabledByDefault,
   });
 
   final LatLng? initialLocation;
   final bool isPreview;
   final bool mapsEnabled;
+
+  static const mapsEnabledByDefault =
+      bool.fromEnvironment('GOOGLE_MAPS_ENABLED', defaultValue: !kIsWeb);
+
+  static bool get supportsMaps =>
+      kIsWeb ||
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
 
   @override
   State<MapLocationPicker> createState() => _MapLocationPickerState();
@@ -33,17 +42,21 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   LatLng? _selection;
   String? _message;
   bool _locating = false;
+  bool _draggingPin = false;
   bool _showMap = true;
   bool _validate = false;
 
   bool get _preview => widget.isPreview || AppSession.instance.isPreview;
 
   bool get _canShowMap =>
-      !_preview &&
-      widget.mapsEnabled &&
-      (kIsWeb ||
-          defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
+      !_preview && widget.mapsEnabled && MapLocationPicker.supportsMaps;
+
+  bool get _canConfirm =>
+      !_locating && !_draggingPin && _coordinateError == null;
+
+  static final _mapGestures = <Factory<OneSequenceGestureRecognizer>>{
+    Factory<OneSequenceGestureRecognizer>(EagerGestureRecognizer.new),
+  };
 
   @override
   void initState() {
@@ -59,7 +72,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
 
   @override
   void dispose() {
-    _mapController?.dispose();
+    // GoogleMap owns and disposes its controller with the platform view.
     _latitude.dispose();
     _longitude.dispose();
     super.dispose();
@@ -79,7 +92,10 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   void _coordinatesChanged(String _) {
     final error = _coordinateError;
     setState(() {
-      _message = null;
+      _message =
+          _latitude.text.trim().isNotEmpty && _longitude.text.trim().isNotEmpty
+              ? error
+              : null;
       _selection = error == null
           ? LatLng(
               double.parse(_latitude.text.trim()),
@@ -91,21 +107,20 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
 
   bool _acceptLocation(LatLng location) {
     final error = FatehJangArea.validate(location.latitude, location.longitude);
-    if (error != null) {
-      setState(() => _message = error);
-      return false;
-    }
     setState(() {
+      // Keep the visible marker, coordinates and validation on the same point.
+      // In particular, an invalid native drag must not confirm an older pin.
       _setCoordinates(location);
       _selection = location;
-      _message = null;
+      _draggingPin = false;
+      _message = error;
     });
     if (_validate) _formKey.currentState?.validate();
-    return true;
+    return error == null;
   }
 
   Future<void> _currentLocation() async {
-    if (_preview || _locating) return;
+    if (_preview || _locating || _draggingPin) return;
     setState(() {
       _locating = true;
       _message = null;
@@ -164,8 +179,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   }
 
   Future<void> _moveCamera(LatLng location) async {
+    if (!_showMap || !_canShowMap) return;
     try {
-      await _mapController?.animateCamera(CameraUpdate.newLatLng(location));
+      final update = CameraUpdate.newLatLngZoom(location, 17);
+      if (MediaQuery.disableAnimationsOf(context)) {
+        await _mapController?.moveCamera(update);
+      } else {
+        await _mapController?.animateCamera(update);
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -178,6 +199,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   }
 
   void _confirm() {
+    if (_locating || _draggingPin) return;
     setState(() => _validate = true);
     if (!_formKey.currentState!.validate()) return;
     final error = _coordinateError;
@@ -197,6 +219,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     return TextFormField(
       controller: latitude ? _latitude : _longitude,
       enabled: !_locating,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       keyboardType: const TextInputType.numberWithOptions(
         decimal: true,
         signed: true,
@@ -229,6 +252,36 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Choose issue location')),
+      bottomNavigationBar: Material(
+        color: colors.surface,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: _canConfirm ? _confirm : null,
+                  icon: const Icon(Icons.check_outlined),
+                  label: const Text('Confirm location'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                  ),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -257,16 +310,18 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                           child: GoogleMap(
                             initialCameraPosition: CameraPosition(
                               target: _selection ?? FatehJangArea.center,
-                              zoom: 12,
+                              zoom: _selection == null ? 13 : 17,
                             ),
                             onMapCreated: (controller) {
-                              if (!mounted) {
-                                controller.dispose();
-                                return;
+                              if (mounted && _showMap) {
+                                _mapController = controller;
                               }
-                              _mapController = controller;
                             },
                             onTap: _locating ? null : _acceptLocation,
+                            onLongPress: _locating ? null : _acceptLocation,
+                            gestureRecognizers: _mapGestures,
+                            rotateGesturesEnabled: false,
+                            tiltGesturesEnabled: false,
                             myLocationEnabled: false,
                             myLocationButtonEnabled: false,
                             mapToolbarEnabled: false,
@@ -286,6 +341,15 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                                 Marker(
                                   markerId: const MarkerId('issue-location'),
                                   position: _selection!,
+                                  draggable: !_locating,
+                                  onDragStart: (_) =>
+                                      setState(() => _draggingPin = true),
+                                  onDragEnd: _acceptLocation,
+                                  icon: BitmapDescriptor.defaultMarkerWithHue(
+                                    _coordinateError == null
+                                        ? BitmapDescriptor.hueGreen
+                                        : BitmapDescriptor.hueRed,
+                                  ),
                                   infoWindow: const InfoWindow(
                                     title: 'Issue location',
                                   ),
@@ -294,9 +358,33 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Tap to drop a pin. Touch and hold the pin to drag it. '
+                        'Zoom in to choose the exact spot inside the shaded area.',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (_selection != null) ...[
+                        const SizedBox(height: 12),
+                        Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            _draggingPin
+                                ? 'Release the pin to select this spot.'
+                                : 'Pin: ${_selection!.latitude.toStringAsFixed(7)}, '
+                                    '${_selection!.longitude.toStringAsFixed(7)}',
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       TextButton.icon(
-                        onPressed: () => setState(() => _showMap = false),
+                        onPressed: _draggingPin
+                            ? null
+                            : () => setState(() {
+                                  _showMap = false;
+                                  _mapController = null;
+                                }),
                         icon: const Icon(Icons.edit_location_alt_outlined),
                         label: const Text('Use coordinates instead'),
                         style: TextButton.styleFrom(
@@ -353,7 +441,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                         label: 'Use current location',
                         icon: Icons.my_location_outlined,
                         isLoading: _locating,
-                        onPressed: _locating ? null : _currentLocation,
+                        onPressed:
+                            _locating || _draggingPin ? null : _currentLocation,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -373,44 +462,30 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (constraints.maxWidth < 520) {
-                          return Column(
+                    if (!_canShowMap || !_showMap)
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (constraints.maxWidth < 520) {
+                            return Column(
+                              children: [
+                                _coordinateField(latitude: true),
+                                const SizedBox(height: 16),
+                                _coordinateField(latitude: false),
+                              ],
+                            );
+                          }
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _coordinateField(latitude: true),
-                              const SizedBox(height: 16),
-                              _coordinateField(latitude: false),
+                              Expanded(child: _coordinateField(latitude: true)),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                  child: _coordinateField(latitude: false)),
                             ],
                           );
-                        }
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _coordinateField(latitude: true)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _coordinateField(latitude: false)),
-                          ],
-                        );
-                      },
-                    ),
+                        },
+                      ),
                     const SizedBox(height: 24),
-                    FilledButton.icon(
-                      onPressed: _locating ? null : _confirm,
-                      icon: const Icon(Icons.check_outlined),
-                      label: const Text('Confirm location'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(48, 48),
-                      ),
-                      child: const Text('Cancel'),
-                    ),
                   ],
                 ),
               ),
