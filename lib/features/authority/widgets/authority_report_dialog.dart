@@ -6,6 +6,7 @@ import '../../../core/widgets/civic_widgets.dart';
 import '../../reports/domain/report_filters.dart';
 import '../../reports/widgets/report_card.dart';
 import '../../reports/widgets/report_progress_panel.dart';
+import '../../reports/widgets/report_comments_panel.dart';
 import '../data/authority_service.dart';
 import '../domain/authority_models.dart';
 
@@ -413,6 +414,11 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                       const SizedBox(height: 16),
                                       ProgressHistory(
                                           history: _detail!.history),
+                                      const SizedBox(height: 24),
+                                      ReportCommentsPanel(
+                                          key: ValueKey(
+                                              'discussion-${widget.id}'),
+                                          reportId: widget.id),
                                     ],
                                   ]))),
                       const Divider(height: 1),

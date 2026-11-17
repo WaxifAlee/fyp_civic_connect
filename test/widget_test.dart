@@ -80,8 +80,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Explore your community'), findsOneWidget);
     await tester.enterText(find.byType(TextField).first, 'road');
-    await tester.ensureVisible(find.widgetWithText(ChoiceChip, 'Submitted'));
-    await tester.tap(find.widgetWithText(ChoiceChip, 'Submitted'));
+    await tester.tap(find.text('Filters'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('filter-status')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Submitted').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Show reports'));
     await tester.pumpAndSettle();
     expect(find.text('Damaged road surface on Hospital Road'), findsOneWidget);
     expect(find.text('Footpath needs repair near the school'), findsNothing);

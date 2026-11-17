@@ -60,6 +60,8 @@ Run the rollback-only SQL integration suite against a fresh test project:
 
 ```bash
 supabase db query --remote --file supabase/tests/backend_security.sql --yes
+supabase db query --remote --file supabase/tests/authority_security.sql --yes
+supabase db query --remote --file supabase/tests/report_comments_security.sql --yes
 supabase db lint --remote
 ```
 
@@ -99,3 +101,11 @@ Use production Android signing and a final application ID before distribution. V
 Migrations `20261117000600` and `20261117000700` add the [authority workspace](authority-workspace.md). Membership is private and granted only through trusted database administration; metadata never grants a role. Department staff can review/update their own department, while administrators can review all departments. Public notes are visible to verified citizens without exposing audit actor/request IDs or private profile identity/contact fields.
 
 Status updates lock current membership and report rows, check the expected version and permitted transition, then append an immutable request receipt with the status change. Identical retries return the original receipt; conflicting versions require reload. Retained history prevents report UUID reuse even after reporter-account deletion. [authority_security.sql](../supabase/tests/authority_security.sql) covers the added boundaries with rollback-only fixtures.
+
+## Report discussions
+
+Migration `20261117000800` adds comments through `list_report_comments`, `add_report_comment`, and `delete_report_comment`. The private RLS table has no API-role grants. Every RPC requires a verified account and an existing report. Public responses contain only the comment ID, report ID, text, display name, creation time, and an ownership flag. Staff use the same discussion and own-only removal rules as citizens; official status updates retain their separate authority permissions.
+
+Posts are plain text with 1–1,000 Unicode code points after Unicode whitespace trimming. The client preserves a UUID across uncertain retries. The database serializes add/remove on that UUID and binds it to the author, report, and canonical body digest. The public comment ID doubles as this UUID and never grants access. Removal erases the body and retains a private SHA-256 tombstone; delayed post retries return terminal HTTP 409 instead of resurrecting it. Report and account deletion cascade the associated rows. Known successful posts appear from their validated receipt even if a later read fails.
+
+Listings use `(created_at,id)` keysets, a default of 20 comments and a server maximum of 50. Flutter retains the exact server timestamp for its next cursor, including microseconds on web. Activity updates when the user refreshes or reopens the report; there are no realtime subscriptions. Preview discussions stay in memory. The [rollback-only comment suite](../supabase/tests/report_comments_security.sql) covers privacy, verification, ownership, Unicode, replay, pagination and cascading deletion.

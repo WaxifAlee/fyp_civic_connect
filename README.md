@@ -32,9 +32,10 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 | Area | What the application provides |
 | --- | --- |
 | Overview | Actionable personal report counts, recent activity, and status-filtered report tracking, including closed reports. |
-| Explore | Report cards and details, combined search/category/status filters, sorting, refresh, and paged display. |
+| Explore | Compact search and filter controls, category/status/sort options in a sheet, visible active choices, refresh, and paged display. |
 | Reporting | Department selection, validated photos, precise map pins or manual/GPS locations, upload progress, reference codes, and recovery of interrupted submissions. |
 | Community support | Toggle support for a report; displayed counts follow the committed database transaction. |
+| Report discussions | Public comments shared across citizen and authority views, newest-first pagination, safe posting retries, and confirmed removal of your own comments. |
 | My Reports | Review personal submissions, read public service updates, and confirm deletion of reports owned by the signed-in citizen. |
 | Authority workspace | Department-scoped review queue, administrator filters, bounded pagination, photos/location context, versioned status updates, and immutable public progress history. |
 | Accounts | Email/password registration, email verification, password reset, profile editing, and password changes with reauthentication. |
@@ -44,6 +45,8 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 Departments cover municipal services, public safety, fire & emergency, electricity & gas, and roads & infrastructure. Status labels include Submitted, In progress, Resolved, and Closed.
 
 Notifications currently show an empty state and a link to My Reports. Service updates are available in report details; there is no push delivery service or live notification feed. The [authority workspace guide](docs/authority-workspace.md) covers staff provisioning, permissions, report triage, and progress publishing.
+
+Open a report to read or join its **Comments** discussion. Verified accounts can post up to 1,000 characters; the discussion shows display names and local timestamps. Use refresh to load new activity and **Load older comments** for earlier posts. You can remove your own comments after confirmation. Comments and official service updates remain separate, and posting a comment does not change a report’s status.
 
 <details>
 <summary>Authority workspace preview</summary>

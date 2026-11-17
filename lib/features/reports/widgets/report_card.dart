@@ -6,6 +6,7 @@ import '../../../core/widgets/civic_widgets.dart';
 import '../../../models/report.dart';
 import '../domain/report_filters.dart';
 import 'report_progress_panel.dart';
+import 'report_comments_panel.dart';
 import 'status_badge.dart';
 export 'status_badge.dart';
 
@@ -338,6 +339,10 @@ class _ReportDetailsState extends State<ReportDetails> {
                                 setState(() => _latestStatus = status);
                               }
                             }),
+                        const SizedBox(height: 24),
+                        ReportCommentsPanel(
+                            key: ValueKey('discussion-${report.id}'),
+                            reportId: report.id!),
                         const SizedBox(height: 24),
                       ],
                       if (widget.onSupport != null)

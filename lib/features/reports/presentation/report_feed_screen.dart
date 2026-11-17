@@ -5,6 +5,7 @@ import '../../../models/report.dart';
 import '../application/reports_controller.dart';
 import '../domain/report_filters.dart';
 import '../widgets/report_card.dart';
+import '../widgets/report_filters_bar.dart';
 
 class ExploreIssuesScreen extends StatelessWidget {
   const ExploreIssuesScreen({super.key});
@@ -147,112 +148,20 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
                 ]);
           }));
 
-  Widget _filters(BuildContext context) {
-    final theme = Theme.of(context);
-    return AppPanel(
-        padding: const EdgeInsets.all(20),
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          TextField(
-              controller: _search,
-              onChanged: (_) => setState(() => _visibleCount = 12),
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                  labelText: 'Search reports',
-                  hintText: 'Title, reference, or location',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close),
-                          onPressed: () => setState(() => _search.clear())))),
-          const SizedBox(height: 20),
-          LayoutBuilder(builder: (context, constraints) {
-            final category = DropdownButtonFormField<String>(
-                initialValue: _category ?? '',
-                isExpanded: true,
-                decoration: const InputDecoration(
-                    labelText: 'Category',
-                    prefixIcon: Icon(Icons.category_outlined)),
-                items: [
-                  const DropdownMenuItem(
-                      value: '', child: Text('All categories')),
-                  for (final category in reportCategories)
-                    DropdownMenuItem(
-                        value: category.value,
-                        child: Text(category.label,
-                            overflow: TextOverflow.ellipsis))
-                ],
-                onChanged: (value) => setState(() {
-                      _category = value == '' ? null : value;
-                      _visibleCount = 12;
-                    }));
-            final sort = DropdownButtonFormField<ReportSort>(
-                initialValue: _sort,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                    labelText: 'Sort by', prefixIcon: Icon(Icons.sort)),
-                items: const [
-                  DropdownMenuItem(
-                      value: ReportSort.newest, child: Text('Newest first')),
-                  DropdownMenuItem(
-                      value: ReportSort.oldest, child: Text('Oldest first')),
-                  DropdownMenuItem(
-                      value: ReportSort.mostSupported,
-                      child: Text('Most supported'))
-                ],
-                onChanged: (value) =>
-                    setState(() => _sort = value ?? ReportSort.newest));
-            if (constraints.maxWidth < 600 ||
-                MediaQuery.textScalerOf(context).scale(1) > 1.4) {
-              return Column(
-                  children: [category, const SizedBox(height: 16), sort]);
-            }
-            return Row(children: [
-              Expanded(flex: 3, child: category),
-              const SizedBox(width: 16),
-              Expanded(flex: 2, child: sort)
-            ]);
-          }),
-          const SizedBox(height: 18),
-          Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                ChoiceChip(
-                    label: const Text('All statuses'),
-                    selected: _status == null,
-                    onSelected: (_) => setState(() {
-                          _status = null;
-                          _visibleCount = 12;
-                        })),
-                for (final status in ReportStatus.values
-                    .where((status) => status != ReportStatus.unknown))
-                  ChoiceChip(
-                      avatar: Icon(status.icon,
-                          size: 16,
-                          color: _status == status
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.onSurfaceVariant),
-                      label: Text(status.label),
-                      selected: _status == status,
-                      onSelected: (selected) => setState(() {
-                            _status = selected ? status : null;
-                            _visibleCount = 12;
-                          })),
-                if (_search.text.isNotEmpty ||
-                    _status != null ||
-                    _category != null ||
-                    _sort != ReportSort.newest)
-                  TextButton.icon(
-                      onPressed: _reset,
-                      icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-                      label: const Text('Reset'))
-              ]),
-        ]));
-  }
+  Widget _filters(BuildContext context) => ReportFiltersBar(
+        search: _search,
+        category: _category,
+        status: _status,
+        sort: _sort,
+        onSearchChanged: (_) => setState(() => _visibleCount = 12),
+        onChanged: (category, status, sort) => setState(() {
+          _category = category;
+          _status = status;
+          _sort = sort;
+          _visibleCount = 12;
+        }),
+        onReset: _reset,
+      );
 
   Future<void> _support(Report report) async {
     final successful = await _controller.toggleUpvote(report);
