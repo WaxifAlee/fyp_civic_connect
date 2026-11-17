@@ -1,157 +1,87 @@
-import 'dart:core';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:fyp_civic_connect/models/report.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'supabase_client.dart';
+import 'storage_paths.dart';
 
+/// Firebase-backed report operations. Failures remain visible to the caller.
 class ReportService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
 
-  // Fetch all reports from Firestore with filter options
-  Future<List<Report>> fetchAllReports({
-    String? category,
-    String? status,
-    bool sortByPopularity = false,
-  }) async {
-    try {
-      // Start with the base query
-      Query query = _firestore.collection('reports');
-
-      // Apply filters if provided
-      if (category != null && category.isNotEmpty) {
-        query = query.where('category', isEqualTo: category);
-      }
-      if (status != null && status.isNotEmpty) {
-        query = query.where('status', isEqualTo: status);
-      }
-
-      // If sorting by popularity, order by upvotes
-      if (sortByPopularity) {
-        query = query.orderBy('upvotes', descending: true);
-      } else {
-        // Default sort by timestamp
-        query = query.orderBy('timestamp', descending: true);
-      }
-
-      QuerySnapshot querySnapshot = await query.get();
-      print('Found ${querySnapshot.docs.length} reports'); // Debug info
-
-      return await Future.wait(querySnapshot.docs.map((doc) async {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        final reportCode = data['reportCode'];
-        print('Report ${doc.id} has code: $reportCode'); // Debug info
-
-        return Report(
-          upvotes: data['upvotes'] ?? 0,
-          upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
-          id: doc.id,
-          category: data['category'],
-          description: data['description'],
-          location: data['location'],
-          mediaRefrence: List<String>.from(data['images']),
-          reportedBy: data['reporterId'],
-          title: data['title'],
-          status: data['status'],
-          profilePicture: data['avatar'],
-          reporterName: data['reporterName'],
-          reportCode: reportCode,
-          date: (data['timestamp'] as Timestamp).toDate().toLocal(),
-        );
-      }).toList());
-    } catch (e) {
-      print('Error fetching reports: $e');
-      return [];
+  Future<List<Report>> fetchAllReports(
+      {String? category, String? status, bool sortByPopularity = false}) async {
+    Query<Map<String, dynamic>> query = _firestore.collection('reports');
+    if (category != null && category.isNotEmpty) {
+      query = query.where('category', isEqualTo: category);
     }
+    if (status != null && status.isNotEmpty) {
+      query = query.where('status', isEqualTo: status);
+    }
+    final snapshot = await query
+        .orderBy(sortByPopularity ? 'upvotes' : 'timestamp', descending: true)
+        .get();
+    return snapshot.docs
+        .map((doc) => Report.fromMap({...doc.data(), 'id': doc.id}))
+        .toList();
   }
 
-  // Fetch reports reported by the current user
   Future<List<Report>> fetchReportsByCurrentUser() async {
-    try {
-      firebase_auth.User? currentUser = _auth.currentUser;
-      if (currentUser == null) {
-        print('No user is currently signed in.');
-        return [];
-      }
-
-      QuerySnapshot querySnapshot = await _firestore
-          .collection('reports')
-          .where('reporterId', isEqualTo: currentUser.uid)
-          .get();
-      return await Future.wait(querySnapshot.docs.map((doc) async {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        return Report(
-          id: doc.id,
-          category: data['category'],
-          description: data['description'],
-          location: data['location'],
-          mediaRefrence: List<String>.from(data['images']),
-          reportedBy: data['reporterId'],
-          title: data['title'],
-          status: data['status'],
-          profilePicture: data['avatar'],
-          reporterName: data['reporterName'],
-          date: (data['timestamp'] as Timestamp).toDate().toLocal(),
-          upvotes: data['upvotes'],
-          reportCode: data['reportCode'],
-          upvotedBy: List<String>.from(data['upvotedBy'] ?? []),
-        );
-      }).toList());
-    } catch (e) {
-      print('Error fetching reports by current user: $e');
-      return [];
-    }
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Sign in to view your reports.');
+    final snapshot = await _firestore
+        .collection('reports')
+        .where('reporterId', isEqualTo: user.uid)
+        .get();
+    return snapshot.docs
+        .map((doc) => Report.fromMap({...doc.data(), 'id': doc.id}))
+        .toList();
   }
 
   Future<void> deleteReport(String reportId, List<String> imagePaths) async {
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Sign in to manage your reports.');
+    final reference = _firestore.collection('reports').doc(reportId);
+    final snapshot = await reference.get();
+    if (snapshot.data()?['reporterId'] != user.uid) {
+      throw StateError('Only the reporter can remove this report.');
+    }
+    await reference.delete();
+    // Deleting the record first keeps an unsuccessful delete from losing photos.
+    if (!SupabaseService.isConfigured) return;
     try {
-      // Delete images from Supabase bucket
-      final client = Supabase.instance.client;
-      for (String path in imagePaths) {
-        final _path = "public/${path.split('/')[9]}";
-        await client.storage.from('reports-images').remove([_path]);
-      }
-
-      // Delete report from Firestore
-      await _firestore.collection('reports').doc(reportId).delete();
-    } catch (e) {
-      print('Error deleting report: $e');
-      throw e;
+      final paths = reportImageStoragePaths(imagePaths, SupabaseService.url);
+      if (paths.isEmpty) return;
+      await Supabase.instance.client.storage
+          .from('reports-images')
+          .remove(paths);
+    } catch (error) {
+      debugPrint(
+          'Report removed; storage cleanup needs retry: ${error.runtimeType}');
     }
   }
 
-  Future<void> toggleUpvote(String reportId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final reportRef =
-        FirebaseFirestore.instance.collection('reports').doc(reportId);
-
-    return FirebaseFirestore.instance.runTransaction((transaction) async {
-      final reportDoc = await transaction.get(reportRef);
-
-      if (!reportDoc.exists) return;
-
-      List<String> upvotedBy =
-          List<String>.from(reportDoc.data()?['upvotedBy'] ?? []);
-      int currentUpvotes = reportDoc.data()?['upvotes'] ?? 0;
-
-      if (upvotedBy.contains(user.uid)) {
-        // Remove upvote
-        upvotedBy.remove(user.uid);
-        currentUpvotes--;
-      } else {
-        // Add upvote
-        upvotedBy.add(user.uid);
-        currentUpvotes++;
+  Future<ReportVote> toggleUpvote(String reportId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw StateError('Sign in to support a report.');
+    final reference = _firestore.collection('reports').doc(reportId);
+    return _firestore.runTransaction<ReportVote>((transaction) async {
+      final snapshot = await transaction.get(reference);
+      if (!snapshot.exists) {
+        throw StateError('This report is no longer available.');
       }
-
-      transaction.update(reportRef, {
-        'upvotedBy': upvotedBy,
-        'upvotes': currentUpvotes,
+      final voters = List<String>.from(snapshot.data()?['upvotedBy'] ?? []);
+      final count = (snapshot.data()?['upvotes'] as num?)?.toInt() ?? 0;
+      final voted = voters.contains(user.uid);
+      voted ? voters.remove(user.uid) : voters.add(user.uid);
+      final nextCount = (count + (voted ? -1 : 1)).clamp(0, 1 << 31);
+      transaction.update(reference, {
+        'upvotedBy': voters,
+        'upvotes': nextCount,
       });
+      return ReportVote(count: nextCount, voters: voters);
     });
   }
 }

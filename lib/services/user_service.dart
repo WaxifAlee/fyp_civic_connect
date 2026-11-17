@@ -1,42 +1,33 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fyp_civic_connect/models/citizen_user.dart'; // Adjust the path as needed
-// Adjust the path as needed
+import '../models/citizen_user.dart';
 
-// Global variable to store the logged-in user's data
+/// Current authenticated citizen profile. Preview profiles never enter this cache.
 CitizenUser? globalCitizenUser;
 
 Future<void> fetchAndSetCitizenUser(String userId) async {
-  try {
-    DocumentSnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users') // Replace with your Firestore collection name
-        .doc(userId)
-        .get();
-
-    if (snapshot.exists) {
-      Map<String, dynamic> userData = snapshot.data() as Map<String, dynamic>;
-      globalCitizenUser = CitizenUser(
-        uid: userData['uid'],
-        fullName: userData['full_name'],
-        email: userData['email'],
-        location: userData['locations'],
-        phone: userData['phone'],
-        displayPicture: userData['profile_picture'],
-        cnic: userData['cnic'],
-        gender: userData['gender'],
-        joinDate: (userData['created_at'] as Timestamp)
-            .toDate()
-            .toLocal()
-            .toString()
-            .split(' ')[0]
-            .split('-')
-            .reversed
-            .join('/'), // Convert DateTime to DD/MM/YYYY String
-      );
-    } else {
-      throw Exception('User data does not exist.');
-    }
-  } catch (e) {
-    print('Error in fetchAndSetCitizenUser: $e');
-    rethrow; // Let the calling function handle this error
+  final snapshot =
+      await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  final data = snapshot.data();
+  if (data == null) {
+    throw StateError('Your citizen profile could not be found.');
   }
+  final rawDate = data['created_at'];
+  final date = rawDate is Timestamp
+      ? rawDate.toDate()
+      : DateTime.tryParse(rawDate?.toString() ?? '');
+  String? text(String field) =>
+      data[field] is String ? data[field] as String : null;
+  globalCitizenUser = CitizenUser(
+    uid: text('uid') ?? userId,
+    fullName: text('full_name'),
+    email: text('email'),
+    location: text('locations'),
+    phone: text('phone'),
+    displayPicture: text('profile_picture'),
+    cnic: text('cnic'),
+    gender: text('gender'),
+    joinDate: date == null
+        ? null
+        : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}',
+  );
 }

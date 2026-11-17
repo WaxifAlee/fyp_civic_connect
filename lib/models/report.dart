@@ -1,3 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+/// The vote state returned by the committed Firestore transaction.
+class ReportVote {
+  const ReportVote({required this.count, required this.voters});
+  final int count;
+  final List<String> voters;
+}
+
+/// The persisted report contract, including aliases from earlier app versions.
 class Report {
   final String? category;
   final String? description;
@@ -5,66 +15,76 @@ class Report {
   final List<String> mediaRefrence;
   final String? title;
   final String? reportedBy;
-  final String? reporterName; // Ensure reporterName is included
-  final String? status; // Ensure status is included
+  final String? reporterName;
+  final String? status;
   final String? profilePicture;
   final DateTime? date;
   final String? id;
-  final String? reportCode; // New field
+  final String? reportCode;
   int? upvotes;
-  List<String>? upvotedBy; // List of user IDs who upvoted
+  List<String>? upvotedBy;
 
   Report(
-      {required this.category,
-      required this.description,
-      required this.location,
-      required this.mediaRefrence,
-      required this.reportedBy,
-      required this.title,
-      required this.status, // Ensure status is included
-      required this.profilePicture,
-      required this.reporterName,
-      required this.date, // Ensure reporterName is included
-      required this.id,
-      this.reportCode, // New optional parameter
+      {this.category,
+      this.description,
+      this.location,
+      this.mediaRefrence = const [],
+      this.reportedBy,
+      this.title,
+      this.status,
+      this.profilePicture,
+      this.reporterName,
+      this.date,
+      this.id,
+      this.reportCode,
       this.upvotedBy,
       this.upvotes = 0});
 
   factory Report.fromMap(Map<String, dynamic> map) {
+    final rawDate = map['timestamp'] ?? map['date'];
     return Report(
-      category: map['category'],
-      description: map['description'],
-      location: map['location'],
-      mediaRefrence: List<String>.from(map['mediaRefrence']),
-      reportedBy: map['reportedBy'],
-      title: map['title'],
-      status: map['status'],
-      profilePicture: map['profilePicture'],
-      reporterName: map['reporterName'],
-      date: DateTime.parse(map['date']),
-      id: map['id'],
-      reportCode: map['reportCode'], // Add this line
-      upvotedBy: List<String>.from(map['upvotedBy'] ?? []),
-      upvotes: map['upvotes']?.toInt() ?? 0,
+      category: _string(map['category']),
+      description: _string(map['description']),
+      location: _string(map['location']),
+      title: _string(map['title']),
+      mediaRefrence: _strings(map['images'] ?? map['mediaRefrence']),
+      reportedBy: _string(map['reporterId'] ?? map['reportedBy']),
+      status: _string(map['status']),
+      profilePicture: _string(map['avatar'] ?? map['profilePicture']),
+      reporterName: _string(map['reporterName']),
+      id: _string(map['id']),
+      reportCode: _string(map['reportCode']),
+      date: rawDate is Timestamp
+          ? rawDate.toDate()
+          : rawDate is DateTime
+              ? rawDate
+              : DateTime.tryParse(rawDate?.toString() ?? ''),
+      upvotedBy: _strings(map['upvotedBy']),
+      upvotes: map['upvotes'] is num
+          ? (map['upvotes'] as num).toInt().clamp(0, 1 << 31)
+          : 0,
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'category': category,
-      'description': description,
-      'location': location,
-      'mediaRefrence': mediaRefrence,
-      'reportedBy': reportedBy,
-      'title': title,
-      'status': status,
-      'profilePicture': profilePicture,
-      'reporterName': reporterName,
-      'date': date?.toIso8601String(),
-      'id': id,
-      'reportCode': reportCode, // Add this line
-      'upvotedBy': upvotedBy ?? [],
-      'upvotes': upvotes ?? 0,
-    };
-  }
+  static String? _string(dynamic value) => value is String ? value : null;
+  static List<String> _strings(dynamic value) => value is Iterable
+      ? value.whereType<String>().where((s) => s.isNotEmpty).toList()
+      : [];
+
+  Map<String, dynamic> toMap() => {
+        'category': category,
+        'description': description,
+        'location': location,
+        'mediaRefrence': mediaRefrence,
+        'reportedBy': reportedBy,
+        'title': title,
+        'status': status,
+        'profilePicture': profilePicture,
+        'reporterName': reporterName,
+        'date': date?.toIso8601String(),
+        'id': id,
+        'reportCode': reportCode,
+        'upvotedBy': upvotedBy ?? [],
+        'upvotes': upvotes ?? 0,
+      };
 }

@@ -1,12 +1,12 @@
 {
-    "name": "fyp_civic_connect",
-    "short_name": "fyp_civic_connect",
+    "name": "CivicConnect",
+    "short_name": "CivicConnect",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F6F7F2",
+    "theme_color": "#174D3C",
+    "description": "Your community, connected. Report local issues and follow their progress.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

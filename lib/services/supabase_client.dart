@@ -1,12 +1,13 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class SupabaseService {
+abstract final class SupabaseService {
+  static const url = String.fromEnvironment('SUPABASE_URL');
+  static const anonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  static bool _initialized = false;
+  static bool get isConfigured => _initialized;
   static Future<void> initialize() async {
-    await Supabase.initialize(
-      url:
-          'https://vlkfmraxbpwctukymsyt.supabase.co', // Replace with your Supabase project URL
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsa2ZtcmF4YnB3Y3R1a3ltc3l0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDY5NTE0MywiZXhwIjoyMDUwMjcxMTQzfQ.E-PHg7JyjwLmQBe9fZ0ToXlNLsKXSsxnLzJWeOZSXjM',
-    );
+    if (url.isEmpty || anonKey.isEmpty || _initialized) return;
+    await Supabase.initialize(url: url, anonKey: anonKey);
+    _initialized = true;
   }
 }
