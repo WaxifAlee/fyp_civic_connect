@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/widgets/civic_widgets.dart';
+import '../core/widgets/refresh_shortcuts.dart';
 import '../services/user_service.dart';
 import 'app_session.dart';
 
@@ -47,9 +48,11 @@ class AppShell extends StatefulWidget {
       {super.key,
       required this.currentIndex,
       required this.child,
+      this.onRefresh,
       this.onBeforeLeave});
   final int currentIndex;
   final Widget child;
+  final Future<void> Function()? onRefresh;
   final Future<bool> Function()? onBeforeLeave;
 
   @override
@@ -108,7 +111,7 @@ class _AppShellState extends State<AppShell> {
       final wide = constraints.maxWidth >= 1100 &&
           MediaQuery.textScalerOf(context).scale(1) < 1.5;
       final rail = constraints.maxWidth >= 760;
-      return Scaffold(
+      final scaffold = Scaffold(
         body: SafeArea(
             bottom: false,
             child: Row(children: [
@@ -231,21 +234,39 @@ class _AppShellState extends State<AppShell> {
             ])),
         bottomNavigationBar: rail
             ? null
-            : DecoratedBox(
-                decoration: BoxDecoration(
-                    border:
-                        Border(top: BorderSide(color: colors.outlineVariant))),
-                child: NavigationBar(
+            : Stack(children: [
+                Positioned.fill(
+                    top: 12,
+                    child: DecoratedBox(
+                        decoration: BoxDecoration(
+                            color: colors.surface,
+                            border: Border(
+                                top: BorderSide(
+                                    color: colors.outlineVariant))))),
+                NavigationBar(
+                    height: 88,
+                    backgroundColor: Colors.transparent,
                     selectedIndex: currentIndex.clamp(0, 4),
                     onDestinationSelected: (i) => _navigate(context, i),
                     destinations: [
                       for (final d in _destinations)
-                        NavigationDestination(
-                            icon: Icon(d.icon),
-                            selectedIcon: Icon(d.selected),
-                            label: d.short)
-                    ])),
+                        if (d.route == '/report_issue')
+                          NavigationBarTheme(
+                              data: NavigationBarTheme.of(context)
+                                  .copyWith(indicatorColor: Colors.transparent),
+                              child: NavigationDestination(
+                                  tooltip: d.label,
+                                  icon: const _ReportActionIcon(),
+                                  label: d.short))
+                        else
+                          NavigationDestination(
+                              icon: Icon(d.icon),
+                              selectedIcon: Icon(d.selected),
+                              label: d.short)
+                    ])
+              ]),
       );
+      return RefreshShortcuts(onRefresh: widget.onRefresh, child: scaffold);
     });
   }
 
@@ -375,6 +396,38 @@ class _AppShellState extends State<AppShell> {
                                                 : FontWeight.w500)))
                               ]
                             ]))))));
+  }
+}
+
+class _ReportActionIcon extends StatelessWidget {
+  const _ReportActionIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return SizedBox(
+        width: 52,
+        height: 32,
+        child: OverflowBox(
+            minWidth: 52,
+            maxWidth: 52,
+            minHeight: 52,
+            maxHeight: 52,
+            child: Transform.translate(
+                offset: const Offset(0, -8),
+                child: DecoratedBox(
+                    decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                              color: colors.shadow.withValues(alpha: 0.2),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4))
+                        ]),
+                    child: Center(
+                        child: Icon(Icons.add_rounded,
+                            size: 30, color: colors.onPrimary))))));
   }
 }
 

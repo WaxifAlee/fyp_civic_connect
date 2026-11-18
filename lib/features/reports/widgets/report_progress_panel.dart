@@ -58,11 +58,12 @@ class ReportProgressPanel extends StatefulWidget {
   final ReportProgressService? service;
   final ValueChanged<String>? onLatestStatus;
   @override
-  State<ReportProgressPanel> createState() => _ReportProgressPanelState();
+  State<ReportProgressPanel> createState() => ReportProgressPanelState();
 }
 
-class _ReportProgressPanelState extends State<ReportProgressPanel> {
+class ReportProgressPanelState extends State<ReportProgressPanel> {
   late Future<List<ReportProgress>> _history;
+  bool _loading = false;
   @override
   void initState() {
     super.initState();
@@ -70,6 +71,7 @@ class _ReportProgressPanelState extends State<ReportProgressPanel> {
   }
 
   void _load() {
+    _loading = true;
     _history = (widget.service ?? ReportProgressService())
         .history(widget.reportId)
         .then((history) {
@@ -77,7 +79,16 @@ class _ReportProgressPanelState extends State<ReportProgressPanel> {
         widget.onLatestStatus?.call(history.first.toStatus);
       }
       return history;
-    });
+    }).whenComplete(() => _loading = false);
+  }
+
+  Future<void> refresh() async {
+    if (!_loading) setState(_load);
+    try {
+      await _history;
+    } catch (_) {
+      // FutureBuilder presents the loading error and its retry action.
+    }
   }
 
   @override

@@ -97,6 +97,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final dark in [false, true]) {
+    testWidgets(
+        'Explore uses the raised navigation action to create a report (${dark ? 'dark, large text' : 'light'})',
+        (tester) async {
+      await openScreen(tester, '/explore',
+          size: const Size(375, 900), scale: dark ? 2 : 1, dark: dark);
+      expect(
+          find.widgetWithText(FilledButton, 'Report an issue'), findsNothing);
+      final action = find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.byIcon(Icons.add_rounded));
+      final explore = find.descendant(
+          of: find.byType(NavigationBar), matching: find.byIcon(Icons.explore));
+      expect(
+          tester.getCenter(action).dy, lessThan(tester.getCenter(explore).dy));
+      // The raised portion must accept taps too, above the bar's top border.
+      await tester.tapAt(tester.getCenter(action) + const Offset(0, -20));
+      await tester.pumpAndSettle();
+      expect(find.text('Details'), findsOneWidget);
+      expect(find.byType(TextFormField), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('Explore desktop omits the page-level report action',
+      (tester) async {
+    await openScreen(tester, '/explore');
+    expect(find.widgetWithText(FilledButton, 'Report an issue'), findsNothing);
+    expect(find.text('Report an issue'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('overview status metrics open the matching personal queue',
       (tester) async {
     await openScreen(tester, '/dashboard');

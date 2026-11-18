@@ -33,6 +33,8 @@ class RefreshQueue extends AuthorityService {
 }
 
 class LostResponse extends AuthorityService {
+  LostResponse({this.commitBeforeFailure = true});
+  final bool commitBeforeFailure;
   final requests = <String>[];
   int queueCalls = 0;
   @override
@@ -59,6 +61,10 @@ class LostResponse extends AuthorityService {
       required String note,
       required String requestId}) async {
     requests.add(requestId);
+    if (requests.length == 1 && !commitBeforeFailure) {
+      throw const AuthorityException('The update could not be confirmed.',
+          uncertain: true);
+    }
     await super.publish(
         id: id,
         version: version,
@@ -70,6 +76,13 @@ class LostResponse extends AuthorityService {
           uncertain: true);
     }
   }
+}
+
+class DelayedDetail extends AuthorityService {
+  Completer<AuthorityDetail>? pending;
+  @override
+  Future<AuthorityDetail> detail(String id) =>
+      pending?.future ?? super.detail(id);
 }
 
 class ReloadFailure extends AuthorityService {
@@ -167,6 +180,22 @@ Future<void> openWorkspace(WidgetTester tester,
   await tester.pumpAndSettle();
 }
 
+Future<void> pullReportToRefresh(WidgetTester tester) async {
+  final indicator = find.descendant(
+      of: find.byType(Dialog), matching: find.byType(RefreshIndicator));
+  final scrollable =
+      find.descendant(of: indicator, matching: find.byType(Scrollable)).first;
+  tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+  await tester.pump();
+  await tester.drag(
+      find
+          .descendant(
+              of: indicator, matching: find.byType(SingleChildScrollView))
+          .first,
+      const Offset(0, 500));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   setUpAll(() async {
     await (FontLoader('PublicSans')
@@ -201,8 +230,10 @@ void main() {
     final service = RefreshQueue();
     await openWorkspace(tester, service: service);
     service.pending = Completer<AuthorityPage>();
-    await tester.tap(find.text('Refresh queue'));
+    await tester.drag(
+        find.byType(SingleChildScrollView).first, const Offset(0, 500));
     await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
     expect(find.text('Streetlight out near the main market'), findsOneWidget);
     service.pending!.completeError(
         const AuthorityException('Could not refresh the queue.'));
@@ -299,7 +330,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Publish update'));
     await tester.pumpAndSettle();
     expect(find.text('History refresh failed.'), findsOneWidget);
-    await tester.tap(find.byTooltip('Reload latest report'));
+    await pullReportToRefresh(tester);
     await tester.pumpAndSettle();
     expect(
         tester
@@ -336,7 +367,7 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('progress-note')), note);
     await tester.tap(find.widgetWithText(FilledButton, 'Publish update'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Reload latest report'));
+    await pullReportToRefresh(tester);
     await tester.pumpAndSettle();
     expect(
         tester
@@ -349,21 +380,69 @@ void main() {
     expect(find.text(note), findsOneWidget);
   });
 
-  testWidgets('reloading an uncertain update refreshes the queue',
+  for (final committed in [false, true]) {
+    testWidgets(
+        'refresh keeps an uncertain staff request safe (committed: $committed)',
+        (tester) async {
+      final service = LostResponse(commitBeforeFailure: committed);
+      await openWorkspace(tester, service: service);
+      await tester.ensureVisible(find.byKey(const ValueKey('review-demo-1')));
+      await tester.tap(find.byKey(const ValueKey('review-demo-1')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('progress-note')),
+          'Refresh the queue after checking uncertain progress.');
+      await tester.tap(find.widgetWithText(FilledButton, 'Publish update'));
+      await tester.pumpAndSettle();
+      final calls = service.queueCalls;
+      // Publishing unfocuses the editor; refresh must still be intercepted.
+      expect(await tester.sendKeyEvent(LogicalKeyboardKey.f5), isTrue);
+      await tester.pumpAndSettle();
+      await pullReportToRefresh(tester);
+      await tester.pumpAndSettle();
+      expect(service.queueCalls, calls);
+      expect(
+          tester
+              .widget<TextFormField>(
+                  find.byKey(const ValueKey('progress-note')))
+              .controller!
+              .text,
+          'Refresh the queue after checking uncertain progress.');
+      expect(find.text('Retry same update'), findsOneWidget);
+      await tester.tap(find.text('Retry same update'));
+      await tester.pumpAndSettle();
+      expect(service.requests, hasLength(2));
+      expect(service.requests.first, service.requests.last);
+      expect(service.queueCalls, greaterThan(calls));
+    });
+  }
+
+  testWidgets('keyboard refresh lets staff keep typing in their focused note',
       (tester) async {
-    final service = LostResponse();
+    final service = DelayedDetail();
     await openWorkspace(tester, service: service);
     await tester.ensureVisible(find.byKey(const ValueKey('review-demo-1')));
     await tester.tap(find.byKey(const ValueKey('review-demo-1')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('progress-note')),
-        'Refresh the queue after checking uncertain progress.');
-    await tester.tap(find.widgetWithText(FilledButton, 'Publish update'));
+    final note = find.byKey(const ValueKey('progress-note'));
+    await tester.enterText(note, 'A draft before refreshing.');
+    final focus = tester
+        .widget<EditableText>(
+            find.descendant(of: note, matching: find.byType(EditableText)))
+        .focusNode;
+    expect(focus.hasFocus, isTrue);
+    final detail = await service.detail('demo-1');
+    service.pending = Completer<AuthorityDetail>();
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.f5), isTrue);
+    await tester.pump();
+    expect(tester.widget<TextFormField>(note).enabled, isTrue);
+    expect(focus.hasFocus, isTrue);
+    await tester.enterText(note, 'A draft continued while refreshing.');
+    service.pending!.complete(detail);
     await tester.pumpAndSettle();
-    final calls = service.queueCalls;
-    await tester.tap(find.byTooltip('Reload latest report'));
-    await tester.pumpAndSettle();
-    expect(service.queueCalls, greaterThan(calls));
+    expect(focus.hasFocus, isTrue);
+    expect(tester.widget<TextFormField>(note).controller!.text,
+        'A draft continued while refreshing.');
+    expect(tester.takeException(), isNull);
   });
 
   for (final (size, scale) in [

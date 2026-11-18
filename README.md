@@ -31,6 +31,7 @@ CivicConnect is a Flutter citizen application with a shared Material 3 interface
 
 | Area | What the application provides |
 | --- | --- |
+| Signup | Pakistani mobile numbers in local (`0309…`) or international (`+92309…`) format, automatic CNIC separators, and email verification. Phone numbers are stored in one international format. |
 | Overview | Actionable personal report counts, recent activity, and status-filtered report tracking, including closed reports. |
 | Explore | Compact search and filter controls, category/status/sort options in a sheet, visible active choices, pull-to-refresh, and paged display. |
 | Reporting | Department selection, validated photos, precise map pins or manual/GPS locations, upload progress, reference codes, and recovery of interrupted submissions. |
@@ -46,9 +47,9 @@ Departments cover municipal services, public safety, fire & emergency, electrici
 
 Notifications currently show an empty state and a link to My Reports. Service updates are available in report details; there is no push delivery service or live notification feed. The [authority workspace guide](docs/authority-workspace.md) covers staff provisioning, permissions, report triage, and progress publishing.
 
-Open a report to read or join its **Comments** discussion. Verified accounts can post up to 1,000 characters; the discussion shows display names and local timestamps. Use refresh to load new activity and **Load older comments** for earlier posts. You can remove your own comments after confirmation. Comments and official service updates remain separate, and posting a comment does not change a report’s status.
+Open a report to read or join its **Comments** discussion. Verified accounts can post up to 1,000 characters; the discussion shows display names and local timestamps. Pull down at the top of the report details to load new comments and service updates; use **Load older comments** for earlier posts. You can remove your own comments after confirmation. Comments and official service updates remain separate, and posting a comment does not change a report’s status.
 
-Pull down at the top of **Overview**, **Explore**, **My Reports**, or the **authority queue** to refresh. Refresh buttons remain available for desktop and keyboard use. Previously loaded reports stay visible during refresh and connection failures; they are the last loaded snapshot until a refresh succeeds.
+Pull down at the top of **Overview**, **Explore**, **My Reports**, the **authority queue**, or a report’s detail view to refresh. Desktop users can press **F5**, **Ctrl+R**, or **⌘R** to refresh within the application. Page headers stay clear of manual refresh buttons. Previously loaded reports stay visible during refresh and connection failures; they are the last loaded snapshot until a refresh succeeds. Unposted comments and service notes remain in place when refreshing report details. An uncertain service update keeps its draft and original request for a safe retry before refreshing.
 
 Report, account, service-note and comment drafts ask for confirmation before being discarded. Report details keep their close control above the scrolling discussion. An unconfirmed comment or service update stays open for a safe retry, preserving the original action. These protections last while the application is open; unsubmitted form and comment drafts are not restored after restarting it. Interrupted report submissions use the separate persistent recovery journal.
 

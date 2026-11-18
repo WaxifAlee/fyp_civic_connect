@@ -100,10 +100,6 @@ class _ReportCommentsPanelState extends State<ReportCommentsPanel> {
             color: theme.colorScheme.primary, size: 22),
         const SizedBox(width: 10),
         Expanded(child: Text('Comments', style: theme.textTheme.titleLarge)),
-        IconButton(
-            tooltip: 'Refresh comments',
-            onPressed: c.canRefresh ? c.load : null,
-            icon: const Icon(Icons.refresh, size: 20)),
       ]),
       const SizedBox(height: 4),
       Text(

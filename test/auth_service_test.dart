@@ -177,6 +177,21 @@ void main() {
     expect(jsonDecode(requests.single.body)['email'], 'citizen@example.com');
   });
 
+  test('signup normalizes a local phone before sending identity metadata',
+      () async {
+    respond = (_) => jsonResponse(userJson(verified: false));
+    await auth.signUp(
+        email: 'citizen@example.com',
+        password: 'Password123!',
+        fullName: 'Citizen Example',
+        phone: ' 03091234567 ',
+        cnic: '12345-1234567-1',
+        location: 'Fateh Jang',
+        gender: 'Other');
+    final body = jsonDecode(requests.single.body) as Map<String, dynamic>;
+    expect(body['data']['phone'], '+923091234567');
+  });
+
   test('password reset includes the app callback and preserves account privacy',
       () async {
     await auth.sendPasswordReset(' citizen@example.com ');
@@ -364,7 +379,7 @@ void main() {
       await updateCitizenProfile(
           userId: uid,
           fullName: ' Citizen Example ',
-          phone: ' +923001234567 ',
+          phone: avatar == '' ? ' 03001234567 ' : ' +923001234567 ',
           location: ' Fateh Jang ',
           profilePicture: avatar,
           client: client);

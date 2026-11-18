@@ -567,7 +567,7 @@ class _ProfileState extends State<Profile> {
                       enabled: !_saving,
                       decoration: const InputDecoration(
                         labelText: 'Phone number',
-                        helperText: 'International format: +923001234567',
+                        helperText: 'Use 03091234567 or +923091234567.',
                         helperMaxLines: 3,
                         prefixIcon: Icon(Icons.phone_outlined),
                         errorMaxLines: 4,

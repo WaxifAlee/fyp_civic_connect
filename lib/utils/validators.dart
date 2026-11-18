@@ -28,13 +28,21 @@ class Validators {
   }
 
   static String? validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Phone number is required';
     }
-    if (!_phoneRegex.hasMatch(value)) {
-      return 'Enter valid international format: +923001234567';
+    if (!_phoneRegex.hasMatch(normalizePhone(value))) {
+      return 'Use a Pakistani mobile number: 03091234567 or +923091234567';
     }
     return null;
+  }
+
+  /// Keep one stored representation so local/international aliases stay unique.
+  static String normalizePhone(String value) {
+    final phone = value.trim();
+    return RegExp(r'^03[0-9]{9}$').hasMatch(phone)
+        ? '+92${phone.substring(1)}'
+        : phone;
   }
 
   static String? validateCNIC(String? value) {

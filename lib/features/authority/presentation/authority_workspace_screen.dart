@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../app/app_session.dart';
 import '../../../core/widgets/civic_widgets.dart';
+import '../../../core/widgets/refresh_shortcuts.dart';
 import '../../reports/domain/report_filters.dart';
 import '../../reports/widgets/report_card.dart';
 import '../application/authority_controller.dart';
@@ -56,7 +57,7 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
+    final scaffold = Scaffold(
         body: SafeArea(
             child: Column(children: [
       Material(
@@ -139,12 +140,6 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
                     description: access == null
                         ? 'Review local issues and keep citizens informed.'
                         : '${access.label} · ${access.isAdmin ? 'Administrator' : 'Department team'}',
-                    actions: [
-                      OutlinedButton.icon(
-                          onPressed: _controller.loading ? null : _refresh,
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Refresh queue'))
-                    ],
                     children: [
                       if (_controller.denied)
                         AppPanel(
@@ -222,6 +217,7 @@ class _AuthorityWorkspaceScreenState extends State<AuthorityWorkspaceScreen> {
                     ]);
               })),
     ])));
+    return RefreshShortcuts(onRefresh: _refresh, child: scaffold);
   }
 
   Widget _failure() => EmptyState(

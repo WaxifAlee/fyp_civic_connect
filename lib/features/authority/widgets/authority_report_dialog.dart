@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widgets/civic_widgets.dart';
 import '../../../core/widgets/leave_guard.dart';
+import '../../../core/widgets/refresh_shortcuts.dart';
 import '../../../core/widgets/form_validation.dart';
 import '../../reports/application/report_comments_controller.dart';
 import '../../reports/domain/report_filters.dart';
@@ -65,6 +66,14 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _refresh() async {
+    if (_busy || _loading || _comments.busy || _uncertain) return;
+    await Future.wait([
+      _reload(),
+      if (_comments.canRefresh) _comments.load(),
+    ]);
+  }
+
   @override
   void dispose() {
     _note.dispose();
@@ -77,7 +86,6 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
     final refreshQueue = _uncertain;
     final preserveDraft =
         _detail != null && !_uncertain && !_acknowledged && !afterPublish;
-    final draftStatus = _status;
     setState(() {
       _loading = true;
       _error = null;
@@ -92,6 +100,7 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
         });
         return;
       }
+      final draftStatus = _status;
       setState(() {
         _detail = detail;
         final currentStatus = detail.item.report.status!;
@@ -193,9 +202,10 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final editable = !_busy && !_loading && !_mustReload && !_uncertain;
+    final editable =
+        !_busy && (!_loading || _detail != null) && !_mustReload && !_uncertain;
     final item = _detail?.item;
-    return LeaveGuard(
+    final guardedDialog = LeaveGuard(
         dirty: _comments.draft.isNotEmpty ||
             (!_acknowledged &&
                 (_note.text.isNotEmpty ||
@@ -226,10 +236,6 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                 child: Text('Service report',
                                     style: theme.textTheme.titleLarge)),
                             IconButton(
-                                tooltip: 'Reload latest report',
-                                onPressed: _busy || _loading ? null : _reload,
-                                icon: const Icon(Icons.refresh)),
-                            IconButton(
                                 tooltip: 'Close service report',
                                 onPressed: _busy
                                     ? null
@@ -238,216 +244,236 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                           ])),
                       const Divider(height: 1),
                       Expanded(
-                          child: SingleChildScrollView(
-                              keyboardDismissBehavior:
-                                  ScrollViewKeyboardDismissBehavior.onDrag,
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (_loading)
-                                      const LinearProgressIndicator(
-                                          semanticsLabel:
-                                              'Loading latest report'),
-                                    if (_error != null) ...[
-                                      InlineNotice(
-                                          message: _error!, isError: true),
-                                      const SizedBox(height: 16),
-                                      if (_mustReload || item == null)
-                                        Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: OutlinedButton.icon(
-                                                onPressed: _busy || _loading
-                                                    ? null
-                                                    : _reload,
-                                                icon: const Icon(Icons.refresh),
-                                                label: const Text(
-                                                    'Reload latest report')))
-                                    ],
-                                    if (_success != null) ...[
-                                      InlineNotice(message: _success!),
-                                      const SizedBox(height: 16)
-                                    ],
-                                    if (item != null) ...[
-                                      Wrap(
-                                          spacing: 12,
-                                          runSpacing: 8,
-                                          crossAxisAlignment:
-                                              WrapCrossAlignment.center,
-                                          children: [
-                                            Text(
-                                                item.report.reportCode ??
-                                                    'Report',
-                                                style:
-                                                    theme.textTheme.labelLarge),
-                                            StatusBadge(
-                                                status: ReportStatus.parse(
-                                                    item.report.status)),
-                                            Text(
-                                                categoryLabel(
-                                                    item.report.category),
-                                                style:
-                                                    theme.textTheme.bodySmall)
-                                          ]),
-                                      const SizedBox(height: 16),
-                                      SelectableText(
-                                          item.report.title ??
-                                              'Community report',
-                                          style: theme.textTheme.headlineSmall),
-                                      const SizedBox(height: 12),
-                                      Text(
-                                          'Submitted ${item.report.date == null ? 'date unavailable' : DateFormat('d MMM yyyy, HH:mm').format(item.report.date!.toLocal())} · ${item.report.upvotes ?? 0} supporters',
-                                          style: theme.textTheme.bodySmall),
-                                      const SizedBox(height: 20),
-                                      SelectableText(
-                                          item.report.description ??
-                                              'No description supplied.',
-                                          style: theme.textTheme.bodyLarge),
-                                      const SizedBox(height: 16),
-                                      SelectableText(
-                                          'Location: ${item.report.location ?? 'Unavailable'}',
-                                          style: theme.textTheme.bodySmall),
-                                      if (item.report.location?.isNotEmpty ??
-                                          false)
-                                        Align(
-                                            alignment: Alignment.centerLeft,
-                                            child: TextButton.icon(
-                                              icon: const Icon(
-                                                  Icons.open_in_new,
-                                                  size: 18),
-                                              label: const Text(
-                                                  'Open location in Maps'),
-                                              onPressed: () async {
-                                                final uri = Uri.https(
-                                                    'www.google.com',
-                                                    '/maps/search/', {
-                                                  'api': '1',
-                                                  'query': item.report.location!
-                                                });
-                                                try {
-                                                  if (await launchUrl(uri,
-                                                      mode: LaunchMode
-                                                          .externalApplication)) {
-                                                    return;
-                                                  }
-                                                } catch (_) {
-                                                  /* Show actionable feedback below. */
-                                                }
-                                                if (context.mounted) {
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(const SnackBar(
-                                                          content: Text(
-                                                              'Maps could not be opened. Copy the coordinates to your map app.')));
-                                                }
-                                              },
-                                            )),
-                                      if (item
-                                          .report.mediaRefrence.isNotEmpty) ...[
-                                        const SizedBox(height: 16),
-                                        SizedBox(
-                                            height: 180,
-                                            child: ListView.separated(
-                                                scrollDirection:
-                                                    Axis.horizontal,
-                                                itemCount: item.report
-                                                    .mediaRefrence.length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(width: 12),
-                                                itemBuilder: (context, index) => ClipRRect(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                    child: Image.network(item.report.mediaRefrence[index],
-                                                        width: 240,
-                                                        height: 180,
-                                                        fit: BoxFit.cover,
-                                                        semanticLabel:
-                                                            'Report photo ${index + 1}',
-                                                        errorBuilder: (_, __, ___) =>
-                                                            Container(
-                                                                width: 240,
-                                                                color: theme.colorScheme.surfaceContainerHighest,
-                                                                child: const Center(child: Text('Photo unavailable')))))))
-                                      ],
-                                      const SizedBox(height: 24),
-                                      const Divider(),
-                                      const SizedBox(height: 20),
-                                      Text('Publish a service update',
-                                          style: theme.textTheme.titleLarge),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                          'Status changes and notes are visible to citizens. Include what happened and the next step.',
-                                          style: theme.textTheme.bodySmall),
-                                      const SizedBox(height: 20),
-                                      Form(
-                                          key: _form,
-                                          child: Column(children: [
-                                            DropdownButtonFormField<String>(
-                                                key: ValueKey(
-                                                    'status-${item.version}-$_loading'),
-                                                initialValue: _status,
-                                                isExpanded: true,
-                                                decoration:
-                                                    const InputDecoration(
-                                                        labelText:
-                                                            'Report status',
-                                                        prefixIcon: Icon(Icons
-                                                            .flag_outlined)),
-                                                items: [
-                                                  for (final status
-                                                      in authorityTransitions(
-                                                          item.report.status!))
-                                                    DropdownMenuItem(
-                                                        value: status,
-                                                        child: Text(
-                                                            '${ReportStatus.parse(status).label}${status == item.report.status ? ' · current' : ''}'))
-                                                ],
-                                                onChanged: editable
-                                                    ? (value) => setState(() {
-                                                          _status = value;
-                                                          _requestId = null;
-                                                        })
-                                                    : null),
+                          child: RefreshIndicator.adaptive(
+                              onRefresh: _refresh,
+                              semanticsLabel:
+                                  'Refresh service report and comments',
+                              child: SingleChildScrollView(
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  keyboardDismissBehavior:
+                                      ScrollViewKeyboardDismissBehavior.onDrag,
+                                  padding: const EdgeInsets.all(24),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        if (_loading)
+                                          const LinearProgressIndicator(
+                                              semanticsLabel:
+                                                  'Loading latest report'),
+                                        if (_error != null) ...[
+                                          InlineNotice(
+                                              message: _error!, isError: true),
+                                          const SizedBox(height: 16),
+                                          if (_mustReload || item == null)
+                                            Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: OutlinedButton.icon(
+                                                    onPressed: _busy || _loading
+                                                        ? null
+                                                        : _reload,
+                                                    icon: const Icon(
+                                                        Icons.refresh),
+                                                    label: const Text(
+                                                        'Reload latest report')))
+                                        ],
+                                        if (_success != null) ...[
+                                          InlineNotice(message: _success!),
+                                          const SizedBox(height: 16)
+                                        ],
+                                        if (item != null) ...[
+                                          Wrap(
+                                              spacing: 12,
+                                              runSpacing: 8,
+                                              crossAxisAlignment:
+                                                  WrapCrossAlignment.center,
+                                              children: [
+                                                Text(
+                                                    item.report.reportCode ??
+                                                        'Report',
+                                                    style: theme
+                                                        .textTheme.labelLarge),
+                                                StatusBadge(
+                                                    status: ReportStatus.parse(
+                                                        item.report.status)),
+                                                Text(
+                                                    categoryLabel(
+                                                        item.report.category),
+                                                    style: theme
+                                                        .textTheme.bodySmall)
+                                              ]),
+                                          const SizedBox(height: 16),
+                                          SelectableText(
+                                              item.report.title ??
+                                                  'Community report',
+                                              style: theme
+                                                  .textTheme.headlineSmall),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                              'Submitted ${item.report.date == null ? 'date unavailable' : DateFormat('d MMM yyyy, HH:mm').format(item.report.date!.toLocal())} · ${item.report.upvotes ?? 0} supporters',
+                                              style: theme.textTheme.bodySmall),
+                                          const SizedBox(height: 20),
+                                          SelectableText(
+                                              item.report.description ??
+                                                  'No description supplied.',
+                                              style: theme.textTheme.bodyLarge),
+                                          const SizedBox(height: 16),
+                                          SelectableText(
+                                              'Location: ${item.report.location ?? 'Unavailable'}',
+                                              style: theme.textTheme.bodySmall),
+                                          if (item.report.location
+                                                  ?.isNotEmpty ??
+                                              false)
+                                            Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: TextButton.icon(
+                                                  icon: const Icon(
+                                                      Icons.open_in_new,
+                                                      size: 18),
+                                                  label: const Text(
+                                                      'Open location in Maps'),
+                                                  onPressed: () async {
+                                                    final uri = Uri.https(
+                                                        'www.google.com',
+                                                        '/maps/search/', {
+                                                      'api': '1',
+                                                      'query':
+                                                          item.report.location!
+                                                    });
+                                                    try {
+                                                      if (await launchUrl(uri,
+                                                          mode: LaunchMode
+                                                              .externalApplication)) {
+                                                        return;
+                                                      }
+                                                    } catch (_) {
+                                                      /* Show actionable feedback below. */
+                                                    }
+                                                    if (context.mounted) {
+                                                      ScaffoldMessenger.of(
+                                                              context)
+                                                          .showSnackBar(
+                                                              const SnackBar(
+                                                                  content: Text(
+                                                                      'Maps could not be opened. Copy the coordinates to your map app.')));
+                                                    }
+                                                  },
+                                                )),
+                                          if (item.report.mediaRefrence
+                                              .isNotEmpty) ...[
                                             const SizedBox(height: 16),
-                                            TextFormField(
-                                                key: const ValueKey(
-                                                    'progress-note'),
-                                                controller: _note,
-                                                enabled: editable,
-                                                maxLines: 4,
-                                                minLines: 3,
-                                                maxLength: 1000,
-                                                decoration: const InputDecoration(
-                                                    labelText:
-                                                        'Public progress note',
-                                                    hintText:
-                                                        'For example: A crew inspected the site. Repairs are scheduled for Thursday.',
-                                                    alignLabelWithHint: true),
-                                                onChanged: (_) => setState(
-                                                    () => _requestId = null),
-                                                validator: (value) => value ==
-                                                            null ||
-                                                        value.trim().length < 10
-                                                    ? 'Write at least 10 characters.'
-                                                    : value.trim().length > 1000
-                                                        ? 'Keep this note within 1,000 characters.'
+                                            SizedBox(
+                                                height: 180,
+                                                child: ListView.separated(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    itemCount: item.report
+                                                        .mediaRefrence.length,
+                                                    separatorBuilder: (_, __) =>
+                                                        const SizedBox(
+                                                            width: 12),
+                                                    itemBuilder: (context, index) => ClipRRect(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                                12),
+                                                        child: Image.network(item.report.mediaRefrence[index],
+                                                            width: 240,
+                                                            height: 180,
+                                                            fit: BoxFit.cover,
+                                                            semanticLabel:
+                                                                'Report photo ${index + 1}',
+                                                            errorBuilder: (_, __, ___) =>
+                                                                Container(width: 240, color: theme.colorScheme.surfaceContainerHighest, child: const Center(child: Text('Photo unavailable')))))))
+                                          ],
+                                          const SizedBox(height: 24),
+                                          const Divider(),
+                                          const SizedBox(height: 20),
+                                          Text('Publish a service update',
+                                              style:
+                                                  theme.textTheme.titleLarge),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                              'Status changes and notes are visible to citizens. Include what happened and the next step.',
+                                              style: theme.textTheme.bodySmall),
+                                          const SizedBox(height: 20),
+                                          Form(
+                                              key: _form,
+                                              child: Column(children: [
+                                                DropdownButtonFormField<String>(
+                                                    key: ValueKey(
+                                                        'status-${item.version}-$_loading'),
+                                                    initialValue: _status,
+                                                    isExpanded: true,
+                                                    decoration:
+                                                        const InputDecoration(
+                                                            labelText:
+                                                                'Report status',
+                                                            prefixIcon: Icon(Icons
+                                                                .flag_outlined)),
+                                                    items: [
+                                                      for (final status
+                                                          in authorityTransitions(
+                                                              item.report
+                                                                  .status!))
+                                                        DropdownMenuItem(
+                                                            value: status,
+                                                            child: Text(
+                                                                '${ReportStatus.parse(status).label}${status == item.report.status ? ' · current' : ''}'))
+                                                    ],
+                                                    onChanged: editable
+                                                        ? (value) =>
+                                                            setState(() {
+                                                              _status = value;
+                                                              _requestId = null;
+                                                            })
                                                         : null),
-                                          ])),
-                                      const SizedBox(height: 24),
-                                      Text('Published history',
-                                          style: theme.textTheme.titleLarge),
-                                      const SizedBox(height: 16),
-                                      ProgressHistory(
-                                          history: _detail!.history),
-                                      const SizedBox(height: 24),
-                                      ReportCommentsPanel(
-                                          key: ValueKey(
-                                              'discussion-${widget.id}'),
-                                          controller: _comments,
-                                          reportId: widget.id),
-                                    ],
-                                  ]))),
+                                                const SizedBox(height: 16),
+                                                TextFormField(
+                                                    key: const ValueKey(
+                                                        'progress-note'),
+                                                    controller: _note,
+                                                    enabled: editable,
+                                                    maxLines: 4,
+                                                    minLines: 3,
+                                                    maxLength: 1000,
+                                                    decoration: const InputDecoration(
+                                                        labelText:
+                                                            'Public progress note',
+                                                        hintText:
+                                                            'For example: A crew inspected the site. Repairs are scheduled for Thursday.',
+                                                        alignLabelWithHint:
+                                                            true),
+                                                    onChanged: (_) => setState(
+                                                        () =>
+                                                            _requestId = null),
+                                                    validator: (value) => value ==
+                                                                null ||
+                                                            value
+                                                                    .trim()
+                                                                    .length <
+                                                                10
+                                                        ? 'Write at least 10 characters.'
+                                                        : value.trim().length >
+                                                                1000
+                                                            ? 'Keep this note within 1,000 characters.'
+                                                            : null),
+                                              ])),
+                                          const SizedBox(height: 24),
+                                          Text('Published history',
+                                              style:
+                                                  theme.textTheme.titleLarge),
+                                          const SizedBox(height: 16),
+                                          ProgressHistory(
+                                              history: _detail!.history),
+                                          const SizedBox(height: 24),
+                                          ReportCommentsPanel(
+                                              key: ValueKey(
+                                                  'discussion-${widget.id}'),
+                                              controller: _comments,
+                                              reportId: widget.id),
+                                        ],
+                                      ])))),
                       const Divider(height: 1),
                       Padding(
                           padding: const EdgeInsets.all(16),
@@ -482,5 +508,6 @@ class _AuthorityReportDialogState extends State<AuthorityReportDialog> {
                                         : 'Publish update'))
                               ])),
                     ]))));
+    return RefreshShortcuts(onRefresh: _refresh, child: guardedDialog);
   }
 }

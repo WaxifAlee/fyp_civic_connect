@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/app_session.dart';
+import '../utils/validators.dart';
 import 'supabase_client.dart';
 
 /// Supabase authentication boundary. Pending email lives only in process memory.
@@ -58,7 +59,7 @@ class AuthService {
       emailRedirectTo: SupabaseService.authRedirectUrl,
       data: {
         'full_name': fullName.trim(),
-        'phone': phone.trim(),
+        'phone': Validators.normalizePhone(phone),
         'cnic': cnic.trim(),
         'locations': location.trim(),
         'gender': gender,

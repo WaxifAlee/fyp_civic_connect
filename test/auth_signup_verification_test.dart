@@ -11,6 +11,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SignupAuth extends AuthService {
   String? submittedEmail;
+  String? submittedPhone;
+  String? submittedCnic;
   int resends = 0;
   int refreshes = 0;
   bool offline = false;
@@ -32,6 +34,8 @@ class SignupAuth extends AuthService {
       required String location,
       required String gender}) async {
     submittedEmail = email.trim();
+    submittedPhone = phone;
+    submittedCnic = cnic;
     if (pending != null) return pending!.future;
     // Supabase intentionally obscures duplicate confirmed registrations.
     return AuthResponse(
@@ -79,7 +83,8 @@ Future<void> enter(WidgetTester tester, String label, String value) async {
   await tester.enterText(field(label), value);
 }
 
-Future<void> completeSignup(WidgetTester tester) async {
+Future<void> completeSignup(WidgetTester tester,
+    {String phone = '+923001234567', String cnic = '12345-1234567-1'}) async {
   await enter(tester, 'Full name', 'Citizen Example');
   await enter(tester, 'Email address', 'citizen@example.com');
   await enter(tester, 'Password', 'Password123!');
@@ -87,8 +92,8 @@ Future<void> completeSignup(WidgetTester tester) async {
   await tester.ensureVisible(find.text('Continue'));
   await tester.tap(find.text('Continue'));
   await tester.pumpAndSettle();
-  await enter(tester, 'Phone number', '+923001234567');
-  await enter(tester, 'CNIC', '12345-1234567-1');
+  await enter(tester, 'Phone number', phone);
+  await enter(tester, 'CNIC', cnic);
   await enter(tester, 'Location / address', 'Fateh Jang');
   await tester.ensureVisible(find.byType(DropdownButtonFormField<String>));
   await tester.tap(find.byType(DropdownButtonFormField<String>));
@@ -145,6 +150,22 @@ void main() {
     expect(find.text('Sign in after confirming your email'), findsOneWidget);
     expect(find.text('citizen@example.com'), findsOneWidget);
     expect(find.textContaining('account has been created'), findsNothing);
+  });
+
+  testWidgets('signup accepts a local mobile number and formats CNIC digits',
+      (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final auth = SignupAuth();
+    await tester.pumpWidget(app(auth));
+    await completeSignup(tester, phone: '03091234567', cnic: '1234512345671');
+    await tester.pumpAndSettle();
+    expect(auth.submittedPhone, '03091234567');
+    expect(auth.submittedCnic, '12345-1234567-1');
+    expect(find.text('Check your email'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('signup shows the Account photo instruction before submission',

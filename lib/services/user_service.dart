@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app/app_session.dart';
 import '../models/citizen_user.dart';
+import '../utils/validators.dart';
 import 'supabase_client.dart';
 
 /// Current authenticated citizen profile. Preview profiles never enter this cache.
@@ -76,7 +77,7 @@ Future<void> updateCitizenProfile({
   globalCitizenUser = null;
   await backend.rpc('update_profile', params: {
     'p_full_name': fullName.trim(),
-    'p_phone': phone.trim(),
+    'p_phone': Validators.normalizePhone(phone),
     'p_locations': location.trim(),
     'p_profile_picture': profilePicture,
   });

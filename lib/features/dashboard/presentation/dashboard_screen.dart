@@ -41,6 +41,7 @@ class _DashboardPageState extends State<DashboardPage> {
             ? 'Good afternoon'
             : 'Good evening';
     return AppShell(
+        onRefresh: _controller.load,
         currentIndex: 0,
         child: ListenableBuilder(
             listenable: _controller,
@@ -50,13 +51,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     title: '$greeting, $name.',
                     description:
                         'Here’s what’s happening in your corner of the community.',
-                    actions: [
-                      OutlinedButton.icon(
-                          onPressed:
-                              _controller.loading ? null : _controller.load,
-                          icon: const Icon(Icons.refresh, size: 18),
-                          label: const Text('Refresh'))
-                    ],
                     children: [
                       const CommunityBanner(),
                       if (_controller.error != null)

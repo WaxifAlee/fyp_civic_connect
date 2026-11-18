@@ -61,6 +61,7 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
 
   @override
   Widget build(BuildContext context) => AppShell(
+      onRefresh: _controller.load,
       currentIndex: widget.mine ? 3 : 1,
       child: ListenableBuilder(
           listenable: _controller,
@@ -79,15 +80,12 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
                     ? 'Every report is a step toward a better neighbourhood. Follow yours here.'
                     : 'See what’s happening nearby. Add your support to the issues that matter.',
                 actions: [
-                  IconButton(
-                      tooltip: 'Refresh reports',
-                      onPressed: _controller.loading ? null : _controller.load,
-                      icon: const Icon(Icons.refresh)),
-                  FilledButton.icon(
-                      onPressed: () => Navigator.pushReplacementNamed(
-                          context, '/report_issue'),
-                      icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Report an issue'))
+                  if (widget.mine)
+                    FilledButton.icon(
+                        onPressed: () => Navigator.pushReplacementNamed(
+                            context, '/report_issue'),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text('Report an issue'))
                 ],
                 children: [
                   _filters(context),
@@ -115,9 +113,11 @@ class _ReportFeedScreenState extends State<ReportFeedScreen> {
                             message: widget.mine
                                 ? 'Spotted something that needs attention? Add a photo and help your community take the next step.'
                                 : 'Be the first to report an issue in your neighbourhood.',
-                            actionLabel: 'Report an issue',
-                            onAction: () => Navigator.pushReplacementNamed(
-                                context, '/report_issue')))
+                            actionLabel: widget.mine ? 'Report an issue' : null,
+                            onAction: widget.mine
+                                ? () => Navigator.pushReplacementNamed(
+                                    context, '/report_issue')
+                                : null))
                   else if (filtered.isEmpty)
                     AppPanel(
                         child: EmptyState(

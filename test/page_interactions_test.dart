@@ -5,10 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
+import 'package:fyp_civic_connect/core/widgets/refresh_shortcuts.dart';
 import 'package:fyp_civic_connect/main.dart';
 import 'package:fyp_civic_connect/features/reports/widgets/report_card.dart';
 import 'package:fyp_civic_connect/models/report.dart';
 import 'package:fyp_civic_connect/features/reports/data/report_comments_service.dart';
+import 'package:fyp_civic_connect/features/reports/domain/report_progress.dart';
+import 'package:fyp_civic_connect/features/reports/widgets/report_progress_panel.dart';
+import 'package:fyp_civic_connect/services/report_progress_service.dart';
 
 class LostCommentResponse extends ReportCommentsService {
   final requests = <String>[];
@@ -22,6 +26,25 @@ class LostCommentResponse extends ReportCommentsService {
           uncertain: true);
     }
     return super.add(reportId, body, requestId);
+  }
+}
+
+class CountingComments extends ReportCommentsService {
+  int reads = 0;
+  @override
+  Future<CommentsPage> list(String reportId, {ReportComment? before}) {
+    reads++;
+    return super.list(reportId, before: before);
+  }
+}
+
+class PendingProgress extends ReportProgressService {
+  int reads = 0;
+  Completer<List<ReportProgress>> pending = Completer();
+  @override
+  Future<List<ReportProgress>> history(String id) {
+    reads++;
+    return pending.future;
   }
 }
 
@@ -69,8 +92,130 @@ void main() {
       await tester.pumpWidget(CivicConnectApp(initialRoute: route));
       await tester.pumpAndSettle();
       expect(find.byType(RefreshIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.refresh), findsNothing);
     });
   }
+
+  testWidgets('pulling report details refreshes comments and keeps the draft',
+      (tester) async {
+    final service = CountingComments();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ReportDetails(
+                report: Report(
+                    id: 'refresh-discussion', title: 'Inspect the drain'),
+                commentsService: service))));
+    await tester.pumpAndSettle();
+    expect(service.reads, 1);
+    expect(find.byTooltip('Refresh comments'), findsNothing);
+    final draft = find.byKey(const ValueKey('comment-draft'));
+    await tester.ensureVisible(draft);
+    await tester.enterText(draft, 'Please retain this unposted detail.');
+    final scrollable = find
+        .descendant(
+            of: find.byType(RefreshIndicator),
+            matching: find.byType(Scrollable))
+        .first;
+    tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+    await tester.pump();
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 500));
+    await tester.pumpAndSettle();
+    expect(service.reads, 2);
+    await tester.sendKeyEvent(LogicalKeyboardKey.f5);
+    await tester.pumpAndSettle();
+    expect(service.reads, 3);
+    expect(tester.widget<TextField>(draft).controller!.text,
+        'Please retain this unposted detail.');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('desktop refresh shortcuts preserve a focused text draft',
+      (tester) async {
+    var refreshes = 0;
+    final draft = TextEditingController(text: 'Keep this draft');
+    addTearDown(draft.dispose);
+    await tester.pumpWidget(MaterialApp(
+        home: RefreshShortcuts(
+            onRefresh: () async {
+              refreshes++;
+            },
+            child: Scaffold(body: TextField(controller: draft)))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField));
+    await tester.sendKeyEvent(LogicalKeyboardKey.f5);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+    await tester.pumpAndSettle();
+    expect(refreshes, 3);
+    expect(draft.text, 'Keep this draft');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('refresh shortcuts target only the current route and unregister',
+      (tester) async {
+    var pageRefreshes = 0;
+    var detailRefreshes = 0;
+    await tester.pumpWidget(MaterialApp(
+        home: RefreshShortcuts(
+            onRefresh: () async {
+              pageRefreshes++;
+            },
+            child: Scaffold(
+                body: Builder(
+                    builder: (context) => TextButton(
+                        onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute<void>(
+                                builder: (_) => RefreshShortcuts(
+                                    onRefresh: () async {
+                                      detailRefreshes++;
+                                    },
+                                    child: const Scaffold(
+                                        body: Text('Current detail'))))),
+                        child: const Text('Open detail')))))));
+    await tester.tap(find.text('Open detail'));
+    await tester.pumpAndSettle();
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.f5), isTrue);
+    expect(pageRefreshes, 0);
+    expect(detailRefreshes, 1);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.f5), isTrue);
+    expect(pageRefreshes, 1);
+    expect(detailRefreshes, 1);
+    await tester.pumpWidget(const SizedBox());
+    expect(await tester.sendKeyEvent(LogicalKeyboardKey.f5), isFalse);
+  });
+
+  testWidgets(
+      'refresh awaits an active history read and presents read failures',
+      (tester) async {
+    final service = PendingProgress();
+    final key = GlobalKey<ReportProgressPanelState>();
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: ReportProgressPanel(
+                key: key, reportId: 'pending-history', service: service))));
+    var refreshed = key.currentState!.refresh();
+    await tester.pump();
+    expect(service.reads, 1);
+    service.pending.complete([]);
+    await refreshed;
+    await tester.pumpAndSettle();
+    service.pending = Completer();
+    refreshed = key.currentState!.refresh();
+    await tester.pump();
+    expect(service.reads, 2);
+    service.pending.completeError(StateError('History is unavailable'));
+    await refreshed;
+    await tester.pumpAndSettle();
+    expect(find.text('Retry updates'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('reselecting the active phone tab returns the page to the top',
       (tester) async {

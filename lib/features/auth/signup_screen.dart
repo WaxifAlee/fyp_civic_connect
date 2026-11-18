@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fyp_civic_connect/app/app_session.dart';
+import 'package:fyp_civic_connect/core/formatters/cnic_input_formatter.dart';
 import 'package:fyp_civic_connect/core/widgets/civic_widgets.dart';
 import 'package:fyp_civic_connect/core/widgets/form_validation.dart';
 import 'package:fyp_civic_connect/services/auth_service.dart';
+import 'package:fyp_civic_connect/utils/validators.dart';
 
 import 'auth_fields.dart';
 import 'auth_flow.dart';
@@ -297,20 +299,19 @@ class _SignupScreenState extends State<SignupScreen> {
                           icon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                           autofillHints: const [AutofillHints.telephoneNumber],
-                          helperText: 'International format: +923001234567',
-                          validator: (value) => value == null ||
-                                  !RegExp(r'^\+923[0-9]{9}$')
-                                      .hasMatch(value.trim())
-                              ? 'Enter a Pakistani mobile number, e.g. +923001234567.'
-                              : null,
+                          helperText: 'Use 03091234567 or +923091234567.',
+                          validator: Validators.validatePhone,
                           enabled: !_locked,
                         ),
                         AuthField(
                           controller: _cnic,
                           label: 'CNIC',
                           icon: Icons.badge_outlined,
-                          keyboardType: TextInputType.text,
-                          helperText: 'Format: 12345-1234567-1',
+                          keyboardType: TextInputType.number,
+                          inputFormatters: const [CnicInputFormatter()],
+                          hintText: '12345-1234567-1',
+                          helperText:
+                              'Enter 13 digits. Dashes are added automatically.',
                           validator: (value) => value == null ||
                                   !RegExp(r'^\d{5}-\d{7}-\d$')
                                       .hasMatch(value.trim())
